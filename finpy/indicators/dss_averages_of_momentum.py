@@ -15,8 +15,8 @@ class DSS_AverageOfMomentum(EntryIndicator,ExitIndicator):
         - exit indicator
 
     Typical use:
-        - When aroon up is over aroon down and crosses, its buy signal
-        - When aroon up is under aroon down and crosses, its sell signal
+        - When dss is over signal and crosses, its buy signal
+        - When dss is under signal and crosses, its sell signal
 
     Calculation method:
         - dss_averages_of_momentum
