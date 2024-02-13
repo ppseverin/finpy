@@ -4,26 +4,46 @@ import pandas as pd
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 
 class DSS_Bressert(EntryIndicator,ExitIndicator):
+    """
+    DSS Bressert indicator
+
+    Main use:
+        - entry indicator
+        
+    Secondary use:
+        - exit indicator
+
+    Typical use:
+        - When dss up is 1, its buy signal
+        - When dss down is 1, its sell signal
+
+    Calculation method:
+        - dss_bressert
+
+    Input:
+        - OHLC data: market data with open, high, low and close information
+        - stochastic_period: period to make calculations. Default is 5
+        - smma_period: period of smma. Default is 8
+        
+    Output:
+        - dss buffer, dss up, dss down
+    """
     def dss_bressert(self,data, smma_period=8, stochastic_period=5):
-        # Calcular el estocástico
-        stoch_k, stoch_d = talib.STOCH(data['high'], data['low'], data['close'],
-                                    fastk_period=stochastic_period, slowk_period=smma_period,
-                                    slowk_matype=0, slowd_period=smma_period, slowd_matype=0)
+        smooth_coefficient = 2/(1+smma_period)
 
-        # Calcular MIT (Modified Indicator Technique)
-        mit = stoch_k
-        mit_smooth = pd.Series(mit).ewm(span=smma_period, adjust=False).mean()
+        high_range = data.high.rolling(stochastic_period).max()
+        low_range = data.low.rolling(stochastic_period).min()
+        delta = data.close-low_range
+        mit = delta/(high_range-low_range)*100
+        mit_buffer = mit.ewm(alpha=smooth_coefficient, adjust=False).mean()
+        
+        high_range = mit_buffer.rolling(stochastic_period).max()
+        low_range = mit_buffer.rolling(stochastic_period).min()
+        delta = mit_buffer-low_range
+        dss = delta/(high_range-low_range)*100
+        dss_buffer = dss.ewm(alpha=smooth_coefficient, adjust=False).mean()
 
-        # Aplicar el cálculo del DSS
-        high_range_mit = mit_smooth.rolling(window=stochastic_period).max()
-        low_range_mit = mit_smooth.rolling(window=stochastic_period).min()
+        dss_up = (dss_buffer>dss_buffer.shift(1)).astype(float)
+        dss_down = (dss_buffer<dss_buffer.shift(1)).astype(float)
 
-        delta_mit = mit_smooth - low_range_mit
-        dss = (delta_mit / (high_range_mit - low_range_mit)) * 100
-        dss_smooth = dss.ewm(span=smma_period, adjust=False).mean()
-
-        # Señales de compra y venta
-        dss_up = (dss_smooth > dss_smooth.shift(1)).astype(float)
-        dss_down = (dss_smooth < dss_smooth.shift(1)).astype(float)
-
-        return dss_smooth, dss_up, dss_down
+        return dss_buffer, dss_up, dss_down
