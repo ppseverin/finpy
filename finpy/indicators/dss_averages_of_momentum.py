@@ -5,6 +5,34 @@ from finpy.indicator_types.utils import ma_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 
 class DSS_AverageOfMomentum(EntryIndicator,ExitIndicator):
+    """
+    DSS Average of Momentum indicator
+
+    Main use:
+        - entry indicator
+        
+    Secondary use:
+        - exit indicator
+
+    Typical use:
+        - When aroon up is over aroon down and crosses, its buy signal
+        - When aroon up is under aroon down and crosses, its sell signal
+
+    Calculation method:
+        - dss_averages_of_momentum
+
+    Input:
+        - OHLC data: market data with open, high, low and close information
+        - stochastic_length: period to make calculations. Default is 32
+        - mom_period: period of momentum. Default is 14
+        - smooth_ma_period: period of smooth moving average. Default is 9
+        - signal_ma_period: moving average signal period. Default is 5
+        - smooth_ma_method: moving average smoothing method. Default is 1
+        - signal_ma_method: signal moving average method. Default is 1
+
+    Output:
+        - dss buffer, signal buffer
+    """
     def dss_averages_of_momentum(self,data, stochastic_length=32,mom_period = 14, smooth_ma_period=9, signal_ma_period=5,smooth_ma_method=1,signal_ma_method=1):
         """
         Calcula un indicador personalizado similar al indicador MQL4 proporcionado.
