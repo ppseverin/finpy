@@ -1,6 +1,3 @@
-import talib
-import pandas as pd
-
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 
 class DSS_Bressert(EntryIndicator,ExitIndicator):
