@@ -1,48 +1,70 @@
-import talib
+import numpy as np
+import pandas as pd
 
-
+from finpy.indicator_types.utils import ma_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 
 class DSS_AverageOfMomentum(EntryIndicator,ExitIndicator):
-    def dss_averages_of_momentum(self,data, stochastic_length=32, smooth_ma=9, signal_ma=5, mom_period=14):
-        # Calcular la EMA o SMA según la configuración
-        # Aquí, tomaremos EMA como ejemplo para la simplificación
-        ema_close = talib.EMA(data['close'], timeperiod=smooth_ma)
-
-        # Calcular el momentum
-        mom_close = talib.MOM(data['close'], timeperiod=mom_period)
-        mom_high = talib.MOM(data['high'], timeperiod=mom_period)
-        mom_low = talib.MOM(data['low'], timeperiod=mom_period)
-
-        # Calcular el DSS (Double Smoothed Stochastic)
-        # Esta es una simplificación y puede requerir ajustes según la lógica exacta del DSS
-        dss = self._calculate_dss(mom_close, mom_high, mom_low, stochastic_length,smooth_ma,signal_ma)
-
-        # Calcular la señal de suavizado
-        signal = talib.SMA(dss, timeperiod=signal_ma)
-
-        return dss, signal
-
-    def _calculate_dss(self,mom_close, mom_high, mom_low, stochastic_length, smooth_ma, signal_ma):
+    def dss_averages_of_momentum(self,data, stochastic_length=32,mom_period = 14, smooth_ma_period=9, signal_ma_period=5,smooth_ma_method=1,signal_ma_method=1):
         """
-        Calcula el indicador Double Smoothed Stochastic (DSS).
+        Calcula un indicador personalizado similar al indicador MQL4 proporcionado.
         
-        :param mom_close: Serie de momentum de precios de cierre.
-        :param mom_high: Serie de momentum de precios altos.
-        :param mom_low: Serie de momentum de precios bajos.
-        :param stochastic_length: Longitud del oscilador estocástico.
-        :param smooth_ma: Longitud de la primera suavización (usualmente SMA o EMA).
-        :param signal_ma: Longitud de la segunda suavización.
-        :return: Una tupla de arrays (dss_line, signal_line).
+        :param data: DataFrame de pandas con columnas 'High', 'Low' y 'Close'.
+        :param stochastic_length: Longitud del período estocástico.
+        :param smooth_ma_period: Período de suavizado para el promedio móvil de DSS.
+        :param signal_ma_period: Período del promedio móvil para la línea de señal.
+        :return: DataFrame con las columnas adicionales del indicador.
         """
+        dssBuffer = np.empty_like(data.shape[0])
+        sigBuffer = np.empty_like(data.shape[0])
+        
+        momc = data.close - data.close.shift(mom_period)
+        momh = data.high - data.high.shift(mom_period)
+        moml = data.low - data.low.shift(mom_period)
+        # Calculando el oscilador estocástico
+        dssBuffer = self._i_dss(momc,momh,moml,data.tick_volume,stochastic_length,smooth_ma_period,smooth_ma_method)
+        
+        if smooth_ma_method == 9:
+            sigBuffer = ma_method(signal_ma_method)(dssBuffer,data.tick_volume,signal_ma_period)
+        else:
+            sigBuffer = ma_method(signal_ma_method)(dssBuffer,signal_ma_period)
+        
+        if not isinstance(sigBuffer,pd.Series):
+            sigBuffer = pd.Series(sigBuffer)
+        
+        if not isinstance(dssBuffer,pd.Series):
+            dssBuffer = pd.Series(dssBuffer)
 
-        # Paso 1: Calcular el Oscilador Estocástico
-        stoch_k = (mom_close - mom_low) / (mom_high - mom_low) * 100
+        return dssBuffer,sigBuffer
 
-        # Paso 2: Primera Suavización
-        smooth_k = talib.SMA(stoch_k, timeperiod=smooth_ma)
+    def _i_dss(self,momc,momh,moml,volume,stochastic_length,smooth_ma_period,smooth_ma_method):
+        workDss_high = np.empty_like(momc)
+        workDss_low = np.empty_like(momc)
 
-        # Paso 3: Segunda Suavización
-        smooth_d = talib.SMA(smooth_k, timeperiod=signal_ma)
+        workDss_low[:] = moml
+        workDss_high[:] = momh
 
-        return smooth_k, smooth_d
+        _min = moml.rolling(stochastic_length).min()
+        _max = momh.rolling(stochastic_length).max()
+        
+        workDss_stl = np.where(_max!=_min,100*(momc-_min)/(_max-_min),0)
+
+        if smooth_ma_method == 9:
+            ma = ma_method(smooth_ma_method)(workDss_stl,volume,smooth_ma_period)
+        else:
+            ma = ma_method(smooth_ma_method)(workDss_stl,smooth_ma_period)
+        workDss_ssl = pd.Series(ma)
+
+        _min = workDss_ssl.rolling(stochastic_length).min()
+        _max = workDss_ssl.rolling(stochastic_length).max()
+
+        stoch = np.where(_max!=_min,100*(workDss_ssl-_min)/(_max-_min),0)
+
+        if smooth_ma_method == 9:
+            ma = ma_method(smooth_ma_method)(stoch,volume,smooth_ma_period)
+        else:
+            ma = ma_method(smooth_ma_method)(stoch,smooth_ma_period)
+
+        workDss_dss = pd.Series(ma)
+        workDss_dss = workDss_dss.apply(lambda x: min(max(x,0),100))
+        return workDss_dss
