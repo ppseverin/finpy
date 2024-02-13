@@ -13,7 +13,7 @@ class DSS_AverageOfMomentum(EntryIndicator,ExitIndicator):
         :param stochastic_length: Longitud del período estocástico.
         :param smooth_ma_period: Período de suavizado para el promedio móvil de DSS.
         :param signal_ma_period: Período del promedio móvil para la línea de señal.
-        :return: DataFrame con las columnas adicionales del indicador.
+        :return: dssBuffer,sigBuffer
         """
         dssBuffer = np.empty_like(data.shape[0])
         sigBuffer = np.empty_like(data.shape[0])
