@@ -5,7 +5,7 @@ Why NNFX? The NNFX methodology challenges conventional Forex trading wisdom by a
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See **Installation** for notes on how to deploy the project on a live system.
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See [**Installation**](https://github.com/ppseverin/finpy#installation) for notes on how to deploy the project on a live system.
 
 ### Prerequisites
 
