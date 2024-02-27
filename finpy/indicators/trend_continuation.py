@@ -3,6 +3,32 @@ import numpy as np
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 
 class TrendContinuation(EntryIndicator,ExitIndicator):
+    """
+    Trend Continuation indicator
+
+    Main use:
+        - entry indicator
+        
+    Secondary use:
+        - exit indicator
+
+    Typical use:
+        - When buy buffer is over sell buffer and crosses, its buy signal
+        - When buy buffer is under sell buffer and crosses, its sell signal
+
+    Calculation method:
+        - trend_continuation
+
+    Input:
+        - OHLC data: market data with open, high, low and close information
+        - n: number to make calculations. Default is 20
+        - t3_period: period to calculate T3. Default is 5
+        - b: coefficient for calculations. The bigger it is, the more signals you will get, but also you will get more false positives. Default is 0.618
+        - count_bars: number of bars to skip for calculations. Default is 5000
+
+    Output:
+        - buy buffer, sell buffer
+    """
     def trend_continuation(self,data, n=20, t3_period=5, b=0.618, count_bars=5000):
         b2 = b * b
         b3 = b2 * b
