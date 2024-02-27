@@ -4,6 +4,29 @@ import pandas as pd
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 
 class Vortex(EntryIndicator,ExitIndicator):
+    """
+    Vortex indicator
+
+    Main use:
+        - entry indicator
+        
+    Secondary use:
+        - exit indicator
+
+    Typical use:
+        - When plus vi is over minus vi and crosses, its buy signal
+        - When plus vi is under minus vi and crosses, its sell signal
+
+    Calculation method:
+        - vortex_indicator
+
+    Input:
+        - OHLC data: market data with open, high, low and close information
+        - length: period used to make calculations. Default is 28
+
+    Output:
+        - plus vi, minus vi
+    """
     def vortex_indicator(self,data, length=28):
         # Calculando True Range (TR)
         high_low = data['high'] - data['low']
