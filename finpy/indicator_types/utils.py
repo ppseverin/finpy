@@ -2,6 +2,34 @@ import talib
 import numpy as np
 import pandas as pd
 
+
+def mql4_atr(high, low, close, period=14):
+    rates_total = len(close)
+    
+    if rates_total <= period or period <= 0:
+        return []
+    
+    # Inicializando buffers
+    tr_buffer = np.zeros(rates_total)
+    atr_buffer = np.zeros(rates_total)
+    
+    # Cálculo preliminar de True Range
+    for i in range(1, rates_total):
+        tr_buffer[i] = max(high[i], close[i-1]) - min(low[i], close[i-1])
+    
+    # Calculando el primer valor ATR
+    first_value = np.sum(tr_buffer[1:period+1]) / period
+    atr_buffer[period] = first_value
+    
+    # Bucle principal de cálculos para ATR
+    for i in range(period + 1, rates_total):
+        atr_buffer[i] = atr_buffer[i-1] + (tr_buffer[i] - tr_buffer[i-period]) / period
+    
+    # Ajustando para que los primeros 'period' valores sean cero, como en MQL4
+    atr_buffer[:period] = np.nan
+    
+    return atr_buffer
+
 def calculate_smma(data, period):
     smma = np.zeros_like(data)
     start_from = data[data.isna()].index.max()+1
@@ -15,6 +43,22 @@ def calculate_smma(data, period):
         smma[i] = (smma[i-1] * (period - 1) + data[i]) / period
     return pd.Series(smma)
 
+def _get_price_translator(price_type):
+    if price_type == 0:
+        return 'close'
+    elif price_type == 1:
+        return 'open'
+    elif price_type == 2:
+        return 'high'
+    elif price_type == 3:
+        return 'low'
+    elif price_type == 4:
+        return 'median'
+    elif price_type == 5:
+        return 'typical'
+    elif price_type == 6:
+        return 'weighted'
+    
 def get_price(data, price_type):
     """
     Calcula el precio especificado utilizando TA-Lib.
@@ -23,6 +67,9 @@ def get_price(data, price_type):
     :param price_type: Tipo de precio a calcular ('median', 'close', 'high', 'low', etc.).
     :return: Serie de Pandas con el precio calculado.
     """
+    if isinstance(price_type,int):
+        price_type = _get_price_translator(price_type)
+
     if price_type.lower() == 'median':
         return talib.MEDPRICE(data['high'], data['low'])
     elif price_type.lower() == 'close':
