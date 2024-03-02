@@ -14,8 +14,8 @@ class JurikVoltyBands(EntryIndicator,ExitIndicator):
         - exit indicator
 
     Typical use:
-        - When miValue over 0 crosses, its buy signal
-        - When miValue under 0 and crosses, its sell signal
+        - When prices buffer over 0 crosses, its buy signal
+        - When prices buffer under 0 and crosses, its sell signal
 
     Calculation method:
         - calculate_jurik_volty_bands
