@@ -30,6 +30,23 @@ def mql4_atr(high, low, close, period=14):
     
     return atr_buffer
 
+def calculate_heikin_ashi(data):
+    ha_close = (data['open'] + data['high'] + data['low'] + data['close']) / 4
+    ha_open = (data['open'].shift(1) + data['close'].shift(1)) / 2
+    ha_high = data[['high', 'close', 'open']].max(axis=1)
+    ha_low = data[['low', 'close', 'open']].min(axis=1)
+
+    ha_data = pd.DataFrame({
+        'date':data['date'],
+        'time':data['time'],
+        'open':ha_open,
+        'high':ha_high,
+        'low':ha_low,
+        'close':ha_close,
+        'tick_volume':data['tick_volume']
+    })
+    return ha_data
+
 def calculate_smma(data, period):
     smma = np.zeros_like(data)
     start_from = data[data.isna()].index.max()+1
@@ -58,8 +75,18 @@ def _get_price_translator(price_type):
         return 'typical'
     elif price_type == 6:
         return 'weighted'
+    elif price_type == 7:
+        return 'average'
+    elif price_type == 8:
+        return 'average median body'
+    elif price_type == 9:
+        return 'trend biased'
+    elif price_type == 10:
+        return 'trend biased extreme'
+    elif price_type in range(11,22):
+        return f'heiken ashi {_get_price_translator(price_type-11)}'
     
-def get_price(data, price_type):
+def get_price(data, price_type,heiken_ashi=False):
     """
     Calcula el precio especificado utilizando TA-Lib.
 
@@ -69,30 +96,87 @@ def get_price(data, price_type):
     """
     if isinstance(price_type,int):
         price_type = _get_price_translator(price_type)
-
+    if isinstance(price_type,type(None)):
+        raise ValueError("Price type can not be None")
+    
+    price_to_use = None
     if price_type.lower() == 'median':
-        return talib.MEDPRICE(data['high'], data['low'])
+        price_to_use = talib.MEDPRICE(data['high'], data['low'])
     elif price_type.lower() == 'close':
-        return data['close']
+        price_to_use = data['close']
     elif price_type.lower() == 'high':
-        return data['high']
+        price_to_use = data['high']
     elif price_type.lower() == 'low':
-        return data['low']
+        price_to_use = data['low']
     elif price_type.lower() == 'open':
-        return data['open']
+        price_to_use = data['open']
     elif price_type.lower() == 'typical':
-        return talib.TYPPRICE(data['high'], data['low'], data['close'])
+        price_to_use = talib.TYPPRICE(data['high'], data['low'], data['close'])
     elif price_type.lower() == 'weighted':
-        return talib.WCLPRICE(data['high'], data['low'], data['close'])
+        price_to_use = talib.WCLPRICE(data['high'], data['low'], data['close'])
+    elif price_type.lower() == 'average' or price_type.lower() == 'average (high+low+open+close)/4':
+        price_type = 'average'
+        price_to_use = talib.AVGPRICE(data['open'],data['high'], data['low'], data['close'])
+    elif price_type.lower() == 'average median body (open+close)/2' or price_type.lower() == 'average median body':
+        price_type = 'average median body'
+        price_to_use = (data['open']+data['close'])/2
+    elif price_type.lower() == 'trend biased':
+        price_to_use = np.where(data['close']>data['open'],(data['high']+data['close'])/2,(data['low']+data['close'])/2)
+    elif price_type.lower() == 'trend biased extreme':
+        price_to_use = np.where(data['close']>data['open'],data['high'],np.where(data['close']<data['open'],data['low'],data['close']))
+    elif 'heiken ashi' in price_type.lower():
+        data = calculate_heikin_ashi(data)
+        _,_,price_type = price_type.lower().partition('heiken ashi')
+        price_type = price_type.strip()
+        return get_price(data,price_type,heiken_ashi=True)
     else:
         raise ValueError("Tipo de precio no reconocido.")
     
+    
+    if isinstance(price_type,pd.Series) and price_to_use.name == None:
+        price_to_use.name = price_type.lower().replace(' ','_')+'_price'
+    else:
+        price_to_use = pd.Series(price_to_use,name=price_type.lower().replace(' ','_')+'_price')
+    if heiken_ashi:
+        price_to_use.name = 'heiken_ashi_'+price_to_use.name
+    return price_to_use
+    
+
+def _ma_method_translator(method):
+    method_dict = {
+        0:"sma",
+        1:"ema",
+        2:"double smoothed ema",
+        3:"double ema (dema)",
+        4:"triple ema (tema)",
+        5:"smoothed ma",
+        6:"linear weighted ma",
+        7:"parabolic weighted ma",
+        8:"alexander ma",
+        9:"volume weghted ma",
+        10:"hull ma",
+        11:"triangular ma",
+        12:"sine weighted ma",
+        13:"linear regression",
+        14:"ie/2",
+        15:"nonlag ma",
+        16:"zero lag ema",
+        17:"leader ema",
+        18:"super smoother",
+        19:"smoother",
+    }
+    return method_dict.get(method,None)
+
 def ma_method(ma_method):
-    if ma_method == 0:
+    if isinstance(ma_method,int):
+        ma_method = _ma_method_translator(ma_method)
+    
+    ma_method = ma_method.lower()
+    if ma_method == 'sma':
         return talib.SMA
-    elif ma_method == 1:
+    elif ma_method == 'ema':
         return talib.EMA
-    elif ma_method == 2:
+    elif ma_method == 'double smoothed ema':
         def double_smooth_ema(price,period):
             alpha = 2.0/(1+np.sqrt(period))
             if not isinstance(price,pd.Series):
@@ -101,11 +185,11 @@ def ma_method(ma_method):
             ema2 = ema1.ewm(alpha=alpha,adjust=False).mean()
             return ema2.to_numpy()
         return double_smooth_ema
-    elif ma_method == 3:
+    elif ma_method == 'double ema (dema)' or ma_method == 'dema':
         return talib.DEMA
-    elif ma_method == 4:
+    elif ma_method == 'triple ema (tema)' or ma_method == 'tema':
         return talib.TEMA
-    elif ma_method == 5:
+    elif ma_method == 'smoothed ma':
         def calculate_smma(data, period):
             if not isinstance(data,pd.Series):
                 data = pd.Series(data)
@@ -121,9 +205,9 @@ def ma_method(ma_method):
                 smma[i] = (smma[i-1] * (period - 1) + data[i]) / period
             return smma
         return calculate_smma
-    elif ma_method == 6:
+    elif ma_method == 'linear weighted ma' or ma_method == 'wma':
         return talib.WMA
-    elif ma_method == 7:
+    elif ma_method == 'parabolic weighted ma' or ma_method == 'pwma':
         def parabolic_lwma(price,period):
             """
             Calcula una Media Móvil Ponderada Parabólicamente (PWMA).
@@ -151,7 +235,7 @@ def ma_method(ma_method):
                     pwma.iloc[i] = sum / sumw
             return pwma.to_numpy()
         return parabolic_lwma
-    elif ma_method == 8:
+    elif ma_method == 'alexander ma' or ma_method == 'alexander':
         def alexander_ma(price, period):
             """
             Calcula la Media Móvil de Alexander.
@@ -181,7 +265,7 @@ def ma_method(ma_method):
                     alex_ma.iloc[i] = sum / sumw #if sumw != 0 else price.iloc[i]
             return alex_ma.to_numpy()
         return alexander_ma
-    elif ma_method == 9:
+    elif ma_method == 'volume weghted ma' or ma_method == 'vwma':
         def iWwma(price, volume, period):
             """
             Calcula la Media Móvil Ponderada por Volumen (WVMA).
@@ -208,7 +292,7 @@ def ma_method(ma_method):
                     wwma.iloc[i] = sum / sumw if sumw != 0 else price.iloc[i]
             return wwma.to_numpy()
         return iWwma
-    elif ma_method == 10:
+    elif ma_method == 'hull ma' or ma_method == 'hull':
         def hull_moving_average(price, period):
             """
             Calcula la Media Móvil de Hull (HMA).
@@ -237,9 +321,9 @@ def ma_method(ma_method):
 
             return hma.to_numpy()
         return hull_moving_average
-    elif ma_method == 11:
+    elif ma_method == 'triangular ma' or ma_method == 'trima':
         return talib.TRIMA
-    elif ma_method == 12:
+    elif ma_method == 'sine weighted ma' or ma_method == 'swma':
         def sine_weighted_moving_average(price, period):
             """
             Calcula la Media Móvil Ponderada por Seno (Sine WMA).
@@ -266,9 +350,9 @@ def ma_method(ma_method):
                     sine_wma.iloc[i] = sum / sumw
             return sine_wma.to_numpy()
         return sine_weighted_moving_average
-    elif ma_method == 13:
+    elif ma_method == 'linear regression' or ma_method == 'linear reg':
         return talib.LINEARREG
-    elif ma_method == 14:
+    elif ma_method == 'ie/2' or ma_method == 'ie':
         def ie2_moving_average(price, period):
             """
             Calcula una media móvil personalizada basada en regresión lineal.
@@ -299,7 +383,7 @@ def ma_method(ma_method):
 
             return ie2_ma.to_numpy()
         return ie2_moving_average
-    elif ma_method == 15:
+    elif ma_method == 'nonlag ma' or ma_method == 'nonlag':
         def non_lag_moving_average(data, length):
             """
             Calcula la Media Móvil No Retrasada (Non-Lag Moving Average).
@@ -345,7 +429,7 @@ def ma_method(ma_method):
 
             return nlm_ma.to_numpy()
         return non_lag_moving_average
-    elif ma_method == 16:
+    elif ma_method == 'zero lag ema' or ma_method == 'zero lag':
         def zero_lag_ema(data, length):
             """
             Calcula la Media Móvil Exponencial Sin Retraso (Zero-Lag EMA).
@@ -378,7 +462,7 @@ def ma_method(ma_method):
 
             return zlema.to_numpy()
         return zero_lag_ema
-    elif ma_method == 17:
+    elif ma_method == 'leader ema' or ma_method == 'leader':
         def leader_moving_average(data, period):
             """
             Calcula una variante de la Media Móvil Exponencial llamada 'Leader Moving Average'.
@@ -414,7 +498,7 @@ def ma_method(ma_method):
             leader_ma = leader1 + leader2
             return leader_ma.to_numpy()
         return leader_moving_average
-    elif ma_method == 18:
+    elif ma_method == 'super smoother' or ma_method == 'sssm':
         def ssm_moving_average(data, period):
             """
             Calcula una media móvil personalizada (Super Smoother Moving Average - SSM).
@@ -449,7 +533,7 @@ def ma_method(ma_method):
 
             return ssm.to_numpy()
         return ssm_moving_average
-    elif ma_method == 19:
+    elif ma_method == 'smoother' or ma_method == 'ssm':
         def smooth_moving_average(data, length):
             """
             Calcula una serie de valores suavizados basada en la función iSmooth.
