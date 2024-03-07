@@ -79,7 +79,7 @@ class NonLagAngle(EntryIndicator,ExitIndicator):
 
     def calculate_non_lag_angle(self,data, nlma_period=14, angle_level=8.0, angle_bars=6, nlma_price = 0):
         # Calcula los valores del ATR y la Media Móvil No Retrasada
-        atr = mql4_atr(data['high'], data['low'], data['close'], angle_bars * 20)
+        atr = mql4_atr(data, angle_bars * 20)
         price1 = data[_get_price_translator(nlma_price)]
         price2 = price1.shift(angle_bars)
         change = self._iNonLagMa(price1,nlma_period) - self._iNonLagMa(price2,nlma_period)

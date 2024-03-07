@@ -3,7 +3,11 @@ import numpy as np
 import pandas as pd
 
 
-def mql4_atr(high, low, close, period=14):
+def mql4_atr(data, period=14):
+    _data = data.reset_index(drop=True).copy()
+    high = _data.high
+    low = _data.low
+    close = _data.close
     rates_total = len(close)
     
     if rates_total <= period or period <= 0:
@@ -164,6 +168,7 @@ def _ma_method_translator(method):
         17:"leader ema",
         18:"super smoother",
         19:"smoother",
+        20:'stddev'
     }
     return method_dict.get(method,None)
 
@@ -194,7 +199,7 @@ def ma_method(ma_method):
             if not isinstance(data,pd.Series):
                 data = pd.Series(data)
             smma = np.zeros_like(data)
-            start_from = data[data.isna()].index.max()+1
+            start_from = data.first_valid_index() #data[data.isna()].index.max()+1
             smma[:start_from+period-1] = np.nan  # Opcional, dependiendo de cómo quieras manejar el inicio de la serie
             
             # Calcula la primera SMMA (media móvil simple de los primeros `period` valores)
@@ -576,4 +581,5 @@ def ma_method(ma_method):
             # El valor final suavizado es smooth4
             return smooth4.to_numpy()
         return smooth_moving_average
-
+    elif ma_method == 'std' or ma_method == 'stddev':
+        return talib.STDDEV

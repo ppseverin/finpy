@@ -1,7 +1,7 @@
 import numpy as np
 
-from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 from finpy.indicator_types.utils import _get_price_translator
+from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 
 class JurikVoltyBands(EntryIndicator,ExitIndicator):
     """
