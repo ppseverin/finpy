@@ -26,7 +26,6 @@ class Aroon(EntryIndicator,ExitIndicator):
 
     Output:
         - aroon down, aroon up
-
     """
     # Implementación del indicador Aroon
     def aroon(self,data,period=14):

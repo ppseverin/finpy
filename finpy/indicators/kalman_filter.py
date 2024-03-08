@@ -17,8 +17,8 @@ class KalmanFilter(EntryIndicator,ExitIndicator,BaselineIndicator):
 
     Typical use:
         - scenario 1:
-            - when values is over close price and crosses, its buy signal
-            - when values is under close price and crosses, its sell signal
+            - when values is under close price and crosses, its buy signal
+            - when values is over close price and crosses, its sell signal
        
         
     Calculation method:

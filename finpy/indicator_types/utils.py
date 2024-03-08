@@ -168,20 +168,28 @@ def _ma_method_translator(method):
         17:"leader ema",
         18:"super smoother",
         19:"smoother",
-        20:'stddev'
+        20:'stddev',
+        21:'wilder',
+        22:'smma',
+        23:'itrend',
+        24:'rema',
+        25:'median',
+        26:'geomean',
+        27:'ilrs',
+        28:'itrima'
     }
     return method_dict.get(method,None)
 
-def ma_method(ma_method):
-    if isinstance(ma_method,int):
-        ma_method = _ma_method_translator(ma_method)
+def ma_method(method):
+    if isinstance(method,int):
+        method = _ma_method_translator(method)
     
-    ma_method = ma_method.lower()
-    if ma_method == 'sma':
+    method = method.lower()
+    if method == 'sma':
         return talib.SMA
-    elif ma_method == 'ema':
+    elif method == 'ema':
         return talib.EMA
-    elif ma_method == 'double smoothed ema':
+    elif method == 'double smoothed ema':
         def double_smooth_ema(price,period):
             alpha = 2.0/(1+np.sqrt(period))
             if not isinstance(price,pd.Series):
@@ -190,11 +198,11 @@ def ma_method(ma_method):
             ema2 = ema1.ewm(alpha=alpha,adjust=False).mean()
             return ema2.to_numpy()
         return double_smooth_ema
-    elif ma_method == 'double ema (dema)' or ma_method == 'dema':
+    elif method == 'double ema (dema)' or method == 'dema':
         return talib.DEMA
-    elif ma_method == 'triple ema (tema)' or ma_method == 'tema':
+    elif method == 'triple ema (tema)' or method == 'tema':
         return talib.TEMA
-    elif ma_method == 'smoothed ma':
+    elif method == 'smoothed ma':
         def calculate_smma(data, period):
             if not isinstance(data,pd.Series):
                 data = pd.Series(data)
@@ -210,9 +218,9 @@ def ma_method(ma_method):
                 smma[i] = (smma[i-1] * (period - 1) + data[i]) / period
             return smma
         return calculate_smma
-    elif ma_method == 'linear weighted ma' or ma_method == 'wma':
+    elif method == 'linear weighted ma' or method == 'wma':
         return talib.WMA
-    elif ma_method == 'parabolic weighted ma' or ma_method == 'pwma':
+    elif method == 'parabolic weighted ma' or method == 'pwma':
         def parabolic_lwma(price,period):
             """
             Calcula una Media Móvil Ponderada Parabólicamente (PWMA).
@@ -240,7 +248,7 @@ def ma_method(ma_method):
                     pwma.iloc[i] = sum / sumw
             return pwma.to_numpy()
         return parabolic_lwma
-    elif ma_method == 'alexander ma' or ma_method == 'alexander':
+    elif method == 'alexander ma' or method == 'alexander':
         def alexander_ma(price, period):
             """
             Calcula la Media Móvil de Alexander.
@@ -270,7 +278,7 @@ def ma_method(ma_method):
                     alex_ma.iloc[i] = sum / sumw #if sumw != 0 else price.iloc[i]
             return alex_ma.to_numpy()
         return alexander_ma
-    elif ma_method == 'volume weghted ma' or ma_method == 'vwma':
+    elif method == 'volume weghted ma' or method == 'vwma':
         def iWwma(price, volume, period):
             """
             Calcula la Media Móvil Ponderada por Volumen (WVMA).
@@ -297,7 +305,7 @@ def ma_method(ma_method):
                     wwma.iloc[i] = sum / sumw if sumw != 0 else price.iloc[i]
             return wwma.to_numpy()
         return iWwma
-    elif ma_method == 'hull ma' or ma_method == 'hull':
+    elif method == 'hull ma' or method == 'hull':
         def hull_moving_average(price, period):
             """
             Calcula la Media Móvil de Hull (HMA).
@@ -326,9 +334,9 @@ def ma_method(ma_method):
 
             return hma.to_numpy()
         return hull_moving_average
-    elif ma_method == 'triangular ma' or ma_method == 'trima':
+    elif method == 'triangular ma' or method == 'trima':
         return talib.TRIMA
-    elif ma_method == 'sine weighted ma' or ma_method == 'swma':
+    elif method == 'sine weighted ma' or method == 'swma':
         def sine_weighted_moving_average(price, period):
             """
             Calcula la Media Móvil Ponderada por Seno (Sine WMA).
@@ -355,9 +363,9 @@ def ma_method(ma_method):
                     sine_wma.iloc[i] = sum / sumw
             return sine_wma.to_numpy()
         return sine_weighted_moving_average
-    elif ma_method == 'linear regression' or ma_method == 'linear reg':
+    elif method == 'linear regression' or method == 'linear reg':
         return talib.LINEARREG
-    elif ma_method == 'ie/2' or ma_method == 'ie':
+    elif method == 'ie/2' or method == 'ie':
         def ie2_moving_average(price, period):
             """
             Calcula una media móvil personalizada basada en regresión lineal.
@@ -388,7 +396,7 @@ def ma_method(ma_method):
 
             return ie2_ma.to_numpy()
         return ie2_moving_average
-    elif ma_method == 'nonlag ma' or ma_method == 'nonlag':
+    elif method == 'nonlag ma' or method == 'nonlag':
         def non_lag_moving_average(data, length):
             """
             Calcula la Media Móvil No Retrasada (Non-Lag Moving Average).
@@ -434,7 +442,7 @@ def ma_method(ma_method):
 
             return nlm_ma.to_numpy()
         return non_lag_moving_average
-    elif ma_method == 'zero lag ema' or ma_method == 'zero lag':
+    elif method == 'zero lag ema' or method == 'zero lag':
         def zero_lag_ema(data, length):
             """
             Calcula la Media Móvil Exponencial Sin Retraso (Zero-Lag EMA).
@@ -467,7 +475,7 @@ def ma_method(ma_method):
 
             return zlema.to_numpy()
         return zero_lag_ema
-    elif ma_method == 'leader ema' or ma_method == 'leader':
+    elif method == 'leader ema' or method == 'leader':
         def leader_moving_average(data, period):
             """
             Calcula una variante de la Media Móvil Exponencial llamada 'Leader Moving Average'.
@@ -503,7 +511,7 @@ def ma_method(ma_method):
             leader_ma = leader1 + leader2
             return leader_ma.to_numpy()
         return leader_moving_average
-    elif ma_method == 'super smoother' or ma_method == 'sssm':
+    elif method == 'super smoother' or method == 'sssm':
         def ssm_moving_average(data, period):
             """
             Calcula una media móvil personalizada (Super Smoother Moving Average - SSM).
@@ -538,7 +546,7 @@ def ma_method(ma_method):
 
             return ssm.to_numpy()
         return ssm_moving_average
-    elif ma_method == 'smoother' or ma_method == 'ssm':
+    elif method == 'smoother' or method == 'ssm':
         def smooth_moving_average(data, length):
             """
             Calcula una serie de valores suavizados basada en la función iSmooth.
@@ -581,5 +589,148 @@ def ma_method(ma_method):
             # El valor final suavizado es smooth4
             return smooth4.to_numpy()
         return smooth_moving_average
-    elif ma_method == 'std' or ma_method == 'stddev':
+    elif method == 'std' or method == 'stddev':
         return talib.STDDEV
+    elif method == 'wilder':
+        def wilders_moving_average(data, period):
+            """
+            Calcula la Wilder's Moving Average para una Serie de pandas.
+
+            :param data: Serie de pandas con los datos para calcular la media móvil (e.g., precios de cierre).
+            :param period: El período de la media móvil.
+            :return: Serie de pandas con los valores de Wilder's Moving Average.
+            """
+            data = data.to_numpy()
+            n = data.shape[0]
+            wilder_ma = np.zeros(n)
+            wilder_ma[:2] = data[:2]
+            for i in range(2, n):
+                wilder_ma[i] = (data[i] - wilder_ma[i - 1]) / period + wilder_ma[i - 1]
+            return wilder_ma
+        return wilders_moving_average
+    elif method == 'smma':
+        def smma(data, period):
+            """
+            Calcula la SMMA para una Serie de pandas.
+
+            :param data: Serie de pandas con los datos para calcular la media móvil (e.g., precios de cierre).
+            :param period: El período de la media móvil.
+            :return: Serie de pandas con los valores de Wilder's Moving Average.
+            """
+            if isinstance(data,pd.Series):
+                data = data.to_numpy()
+            n = data.shape[0]
+            _smma =  np.zeros(n)
+            # s_mma[:period] = data
+            for i in range(period,n):
+                _sum = 0
+                for j in range(period):
+                    _sum+=data[i-j-1]
+                _smma[i] = (_sum - _smma[i-1] + data[i])/period
+            return _smma
+        return smma
+    elif method == 'itrend':
+        def itrend(data, period):
+            """
+            Calcula itrend Moving Average para una Serie de pandas.
+
+            :param data: Serie de pandas con los datos para calcular la media móvil (e.g., precios de cierre).
+            :param period: El período de la media móvil.
+            :return: Serie de pandas con los valores de Wilder's Moving Average.
+            """
+            if isinstance(data,pd.Series):
+                data = data.to_numpy()
+            n = data.shape[0]
+            alpha = 2/(period+1)
+            _itrend =  np.zeros(n)
+            for i in range(2,7):
+                _itrend[i] = (data[i] + 2*data[i-1] + data[i-2])/4
+            for i in range(7,n):
+                _itrend[i] = alpha*(1-0.25*alpha)*data[i] + 0.5*np.power(alpha,2)*data[i-1] - alpha*(1 - 0.75*alpha)*data[i-2] + 2*(1-alpha)*_itrend[i-1] - (1-alpha)*(1-alpha)*_itrend[i-2]
+            return _itrend
+        return itrend
+    elif method == 'rema':
+        def rema(data, period):
+            """
+            Calcula REMA Moving Average para una Serie de pandas.
+
+            :param data: Serie de pandas con los datos para calcular la media móvil (e.g., precios de cierre).
+            :param period: El período de la media móvil.
+            :return: Serie de pandas con los valores de Wilder's Moving Average.
+            """
+            data = data.to_numpy()
+            n = data.shape[0]
+            alpha = 2/(period+1)
+            _rema =  np.zeros(n)
+            _lambda = 0.5
+            _rema[:3] = data[:3]            
+            for i in range(3,n):    
+                _rema[i] = (_rema[i-1]*(1+2*_lambda) + alpha*(data[i] - _rema[i-1]) - _lambda*_rema[i-2])/(1+_lambda)
+            return _rema
+        return rema
+    elif method == 'median':
+        def median(data,period):
+            """
+            Calcula MEDIAN moving average
+            """
+            if not isinstance(data,pd.Series):
+                data = pd.Series(data)
+            return data.rolling(period).median().to_numpy()
+        return median
+    elif method == 'geomean':
+        def geomean(data, period):
+            """
+            Calcula la media geométrica rodante para una serie de precios.
+
+            :param prices: Serie de pandas que contiene los precios.
+            :param period: El período sobre el cual calcular la media geométrica rodante.
+            :return: Serie de pandas con los valores de la media geométrica rodante.
+            """
+            if not isinstance(data,pd.Series):
+                data = pd.Series(data)
+            # Convierte los precios a logaritmos para facilitar el cálculo
+            log_prices = np.log(data)
+            # Calcula la suma de logaritmos en una ventana rodante
+            rolling_sum = log_prices.rolling(window=period).sum()
+            # Convierte la suma de logaritmos de vuelta al exponente y divide por el período para obtener la media geométrica
+            rolling_geomean = np.exp(rolling_sum / period)
+            return rolling_geomean.to_numpy()
+        return geomean
+    elif method == 'ilrs':
+        def ilrs(data, period):
+            if isinstance(data,pd.Series):
+                data = data.to_numpy()
+            sum0 = period*(period-1)/2
+            sum2 = (period-1)*period*(2*period-1)/6.0
+            n = data.shape[0]
+            output = np.zeros(n)
+            sma = ma_method(0)(data,period)
+            for bar in range(period,n):
+                sum1 = 0
+                sumy = 0
+                for i in range(period):
+                    sum1 += i*data[bar-i]
+                    sumy += data[bar-i]
+                num1 = period*sum1 - sum0*sumy
+                num2 = sum0**2 - period*sum2
+                slope = 0
+                if num2!=0:
+                    slope = num1/num2
+                output[bar] = slope + sma[bar]
+            return output
+        return ilrs
+    elif method == 'trima2' or method == 'itrima':
+        def itrima(data,period):
+            if isinstance(data,pd.Series):
+                data = data.to_numpy()
+            n = data.shape[0]
+            length = np.ceil((period+1)/2).astype(int)
+            output = np.zeros(n)
+            sma = ma_method(0)(data,length)
+            for bar in range(length,n):
+                sum0 = 0
+                for i in range(length):
+                    sum0 += sma[bar-i]
+                output[bar] = sum0/length
+            return output
+        return itrima
