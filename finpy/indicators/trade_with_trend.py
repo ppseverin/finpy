@@ -1,6 +1,7 @@
 import numpy as np
+import pandas as pd
 
-from finpy.indicator_types.utils import mql4_atr
+from finpy.indicator_types.utils import mql4_atr,ensure_prices_instance_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator,BaselineIndicator
 
 class TradeWithTrend(EntryIndicator,ExitIndicator,BaselineIndicator):
@@ -31,13 +32,16 @@ class TradeWithTrend(EntryIndicator,ExitIndicator,BaselineIndicator):
     Output:
         - buffer1, buffer2, signal
     """
+    @ensure_prices_instance_method
     def calculate(self,data,period=4,multiplier=2.0):
         atr = mql4_atr(data,period)
-        data['atr'] = atr
-        data['ld_28'] = (data.high+data.low)/2        
-        data['lda_20'] = data.ld_28 + multiplier*data.atr        
-        data['lda_24'] = data.ld_28 - multiplier*data.atr        
-        buffer1,buffer2 = self._iter_prices(data,multiplier)
+        _data = pd.DataFrame()
+        _data['close'] = data.CLOSE.copy()
+        _data['atr'] = atr
+        _data['ld_28'] = (data.HIGH+data.LOW)/2
+        _data['lda_20'] = _data.ld_28 + multiplier*_data.atr
+        _data['lda_24'] = _data.ld_28 - multiplier*_data.atr
+        buffer1,buffer2 = self._iter_prices(_data,multiplier)
         signal = np.where(buffer1>buffer2,1,np.where(buffer1<buffer2,-1,0))
         return buffer1,buffer2,signal
     

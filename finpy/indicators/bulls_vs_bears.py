@@ -1,6 +1,7 @@
 import talib
 import numpy as np
 
+from finpy.indicator_types.utils import ensure_prices_instance_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 
 class BullsVsBears(EntryIndicator,ExitIndicator):
@@ -27,16 +28,17 @@ class BullsVsBears(EntryIndicator,ExitIndicator):
     Output:
         - bulls line,bears line
     """
+    @ensure_prices_instance_method
     def bulls_vs_bears(self,data, inp_period=13):
         # Inicialización de los buffers
         ext_bulls_buffer = np.zeros(len(data))
         ext_bears_buffer = np.zeros(len(data))
 
         # Calcula la EMA del precio de cierre
-        ema_close = talib.EMA(data['close'], timeperiod=inp_period)
+        ema_close = talib.EMA(data.CLOSE, timeperiod=inp_period)
 
         # Calcula Bulls y Bears
-        ext_bulls_buffer = data['high'] - ema_close
-        ext_bears_buffer = ema_close - data['low']
+        ext_bulls_buffer = data.HIGH - ema_close
+        ext_bears_buffer = ema_close - data.LOW
 
         return ext_bulls_buffer, ext_bears_buffer

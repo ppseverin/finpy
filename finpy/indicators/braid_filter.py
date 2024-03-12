@@ -1,8 +1,8 @@
 import talib
 import numpy as np
 
-from finpy.indicator_types.utils import calculate_smma
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
+from finpy.indicator_types.utils import calculate_smma,ensure_prices_instance_method
 
 class BraidFilter(EntryIndicator,ExitIndicator):
     """
@@ -19,7 +19,7 @@ class BraidFilter(EntryIndicator,ExitIndicator):
         - When cross up is under cross down and crosses, its sell signal
 
     Calculation method:
-        - braid_filter
+        - calculate
 
     Input:
         - OHLC data: market data with open, high, low and close information
@@ -37,23 +37,24 @@ class BraidFilter(EntryIndicator,ExitIndicator):
     Output:
         - cross up, cross down, filter atr
     """
-    def braid_filter(self,data,period1=5,period2=8,period3=20,ma_type=1,pips_min_sep_percent=50,atr_period=14):
+    @ensure_prices_instance_method
+    def calculate(self,data,period1=5,period2=8,period3=20,ma_type=1,pips_min_sep_percent=50,atr_period=14):
         if ma_type not in [0,1,2]:
             raise ValueError('ma_type value not admitted. Admitted values are 0, 1 or 2')
         
         # Inicialización de los buffers
         cross_up = np.zeros(len(data))
         cross_down = np.zeros(len(data))
-        filter_atr = talib.ATR(data['high'], data['low'], data['close'], timeperiod=atr_period) * pips_min_sep_percent / 100.0
+        filter_atr = talib.ATR(data.HIGH, data.LOW, data.CLOSE, timeperiod=atr_period) * pips_min_sep_percent / 100.0
         
         if ma_type==2:
-            ema5 = calculate_smma(data.close,period1)
-            ema8 = calculate_smma(data.open,period2)
-            ema20 = calculate_smma(data.close,period3)
+            ema5 = calculate_smma(data.CLOSE,period1)
+            ema8 = calculate_smma(data.OPEN,period2)
+            ema20 = calculate_smma(data.CLOSE,period3)
         else:
-            ema5 = talib.MA(data.close, period1, ma_type)
-            ema8 = talib.MA(data.open, period2, ma_type)
-            ema20 = talib.MA(data.close, period3, ma_type)
+            ema5 = talib.MA(data.CLOSE, period1, ma_type)
+            ema8 = talib.MA(data.OPEN, period2, ma_type)
+            ema20 = talib.MA(data.CLOSE, period3, ma_type)
 
         for i in range(len(data)):
             # Lógica para determinar CrossUp y CrossDown

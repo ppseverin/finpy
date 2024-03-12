@@ -1,8 +1,8 @@
 import talib
 import numpy as np
 
-from finpy.indicator_types.utils import calculate_smma
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
+from finpy.indicator_types.utils import calculate_smma,ensure_prices_instance_method
 
 class TSIMacd(EntryIndicator,ExitIndicator):
     """
@@ -19,7 +19,7 @@ class TSIMacd(EntryIndicator,ExitIndicator):
         - When tsi is under signal line and crosses, its sell signal
 
     Calculation method:
-        - tsi_macd
+        - calculate
 
     Input:
         - OHLC data: market data with open, high, low and close information
@@ -34,9 +34,10 @@ class TSIMacd(EntryIndicator,ExitIndicator):
     Output:
         - tsi, signal line
     """
-    def tsi_macd(self,data, fast=8, slow=21, signal=5, first_r=8, second_s=5, signal_period=5,mode_smooth=2):
+    @ensure_prices_instance_method
+    def calculate(self,data, fast=8, slow=21, signal=5, first_r=8, second_s=5, signal_period=5,mode_smooth=2):
         # Calcular MACD usando TA-Lib
-        macd, macdsignal, macdhist = talib.MACD(data['close'], fastperiod=fast, slowperiod=slow, signalperiod=signal)
+        macd, macdsignal, macdhist = talib.MACD(data.CLOSE, fastperiod=fast, slowperiod=slow, signalperiod=signal)
 
         # Momento (MTM) y su valor absoluto (ABSMTM)
         mtm = macd.shift(-1).fillna(0) - macd

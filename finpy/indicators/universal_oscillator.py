@@ -1,7 +1,7 @@
 import numpy as np
 
-from finpy.indicator_types.utils import get_price,ma_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
+from finpy.indicator_types.utils import ma_method,ensure_prices_instance_method
 
 class UniversalOscillator(EntryIndicator,ExitIndicator):
     """
@@ -31,8 +31,9 @@ class UniversalOscillator(EntryIndicator,ExitIndicator):
         - price calculated, price calculated slope, price calculated zero cross, price calculated level cross
 
     """
+    @ensure_prices_instance_method
     def calculate(self,data,band_edge=20,price='close',level_up=0.8,level_down=-0.8):
-        price_used = get_price(data,price)
+        price_used = data.get_price(price)
         white_noise = (price_used-price_used.shift(2))/2
         noise_filter = ma_method(18)(white_noise,band_edge)
         n = data.shape[0]

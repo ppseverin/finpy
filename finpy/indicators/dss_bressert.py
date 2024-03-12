@@ -1,3 +1,4 @@
+from finpy.indicator_types.utils import ensure_prices_instance_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 
 class DSS_Bressert(EntryIndicator,ExitIndicator):
@@ -15,7 +16,7 @@ class DSS_Bressert(EntryIndicator,ExitIndicator):
         - When dss down is 1, its sell signal
 
     Calculation method:
-        - dss_bressert
+        - calculate
 
     Input:
         - OHLC data: market data with open, high, low and close information
@@ -25,12 +26,13 @@ class DSS_Bressert(EntryIndicator,ExitIndicator):
     Output:
         - dss buffer, dss up, dss down
     """
-    def dss_bressert(self,data, smma_period=8, stochastic_period=5):
+    @ensure_prices_instance_method
+    def calculate(self,data, smma_period=8, stochastic_period=5):
         smooth_coefficient = 2/(1+smma_period)
 
-        high_range = data.high.rolling(stochastic_period).max()
-        low_range = data.low.rolling(stochastic_period).min()
-        delta = data.close-low_range
+        high_range = data.HIGH.rolling(stochastic_period).max()
+        low_range = data.LOW.rolling(stochastic_period).min()
+        delta = data.CLOSE-low_range
         mit = delta/(high_range-low_range)*100
         mit_buffer = mit.ewm(alpha=smooth_coefficient, adjust=False).mean()
         

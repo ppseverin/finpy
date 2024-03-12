@@ -1,6 +1,6 @@
 import numpy as np
 
-from finpy.indicator_types.utils import get_price,ma_method
+from finpy.indicator_types.utils import ma_method,ensure_prices_instance_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator,BaselineIndicator
 
 
@@ -37,8 +37,9 @@ class AllMovingAverages(EntryIndicator,ExitIndicator,BaselineIndicator):
     Output:
         - moving average buffer
     """
+    @ensure_prices_instance_method
     def calculate(self,data,period=50,price=0):
-        price_used = get_price(data,price)
+        price_used = data.get_price(price)
         moving_average_codes = [0,1,21,6,12,28,13,22,10,16,23,25,26,24,27,14,11]
         ma = np.empty_like(moving_average_codes,dtype=object)
         for index,code in enumerate(moving_average_codes):

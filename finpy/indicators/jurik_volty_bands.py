@@ -1,6 +1,6 @@
 import numpy as np
 
-from finpy.indicator_types.utils import _get_price_translator
+from finpy.indicator_types.utils import ensure_prices_instance_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 
 class JurikVoltyBands(EntryIndicator,ExitIndicator):
@@ -18,7 +18,7 @@ class JurikVoltyBands(EntryIndicator,ExitIndicator):
         - When prices buffer under 0 and crosses, its sell signal
 
     Calculation method:
-        - calculate_jurik_volty_bands
+        - calculate
 
     Input:
         - OHLC data: market data with open, high, low and close information
@@ -32,8 +32,9 @@ class JurikVoltyBands(EntryIndicator,ExitIndicator):
         - upValues, dnValues, miValue, prices
 
     """
-    def calculate_jurik_volty_bands(self, data, length=14, price=0, shift=0, normalize=False,zero_bind=True):
-        applied_price = _get_price_translator(price)
+    @ensure_prices_instance_method
+    def calculate(self, data, length=14, price=0, shift=0, normalize=False,zero_bind=True):
+        applied_price = data.get_price(price)
         cprice = data[applied_price]
         vprice = cprice.shift(shift)
         upValues,dnValues,miValue = self._iVolty(vprice, length)

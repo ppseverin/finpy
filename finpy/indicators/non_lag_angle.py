@@ -1,7 +1,7 @@
 import numpy as np
 
-from finpy.indicator_types.utils import _get_price_translator,mql4_atr
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
+from finpy.indicator_types.utils import mql4_atr,ensure_prices_instance_method
 
 class NonLagAngle(EntryIndicator,ExitIndicator):
     """
@@ -23,7 +23,7 @@ class NonLagAngle(EntryIndicator,ExitIndicator):
             - when buffer 2 is less than 0 (not NaN) and previous is NaN, its sell signal
         
     Calculation method:
-        - calculate_non_lag_angle
+        - calculate
 
     Input:
         - OHLC data: market data with open, high, low and close information
@@ -77,10 +77,12 @@ class NonLagAngle(EntryIndicator,ExitIndicator):
 
         return nlm_full
 
-    def calculate_non_lag_angle(self,data, nlma_period=14, angle_level=8.0, angle_bars=6, nlma_price = 0):
+    
+    @ensure_prices_instance_method
+    def calculate(self,data, nlma_period=14, angle_level=8.0, angle_bars=6, nlma_price = 0):
         # Calcula los valores del ATR y la Media Móvil No Retrasada
         atr = mql4_atr(data, angle_bars * 20)
-        price1 = data[_get_price_translator(nlma_price)]
+        price1 = data.get_price(nlma_price)
         price2 = price1.shift(angle_bars)
         change = self._iNonLagMa(price1,nlma_period) - self._iNonLagMa(price2,nlma_period)
         

@@ -1,6 +1,6 @@
 import numpy as np
 
-from finpy.indicator_types.utils import get_price
+from finpy.indicator_types.utils import ensure_prices_instance_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator,BaselineIndicator
 
 
@@ -39,11 +39,12 @@ class KalmanFilter(EntryIndicator,ExitIndicator,BaselineIndicator):
     Output:
         - upBuffer, dnBuffer, values
     """
+    @ensure_prices_instance_method
     def calculate(self,data,mode=6,k=1,sharpness=1):
         velocity = 0
         distance = 0
         error = 0
-        price_used = get_price(data,mode).to_numpy()
+        price_used = data.get_price(mode).to_numpy()
         n= price_used.shape[0]
         values = np.zeros(n)
         upBuffer = np.zeros(n)

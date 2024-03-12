@@ -1,5 +1,6 @@
 import numpy as np
 
+from finpy.indicator_types.utils import ensure_prices_instance_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 
 class TrendContinuation(EntryIndicator,ExitIndicator):
@@ -17,7 +18,7 @@ class TrendContinuation(EntryIndicator,ExitIndicator):
         - When buy buffer is under sell buffer and crosses, its sell signal
 
     Calculation method:
-        - trend_continuation
+        - calculate
 
     Input:
         - OHLC data: market data with open, high, low and close information
@@ -29,7 +30,8 @@ class TrendContinuation(EntryIndicator,ExitIndicator):
     Output:
         - buy buffer, sell buffer
     """
-    def trend_continuation(self,data, n=20, t3_period=5, b=0.618, count_bars=5000):
+    @ensure_prices_instance_method
+    def calculate(self,data, n=20, t3_period=5, b=0.618, count_bars=5000):
         b2 = b * b
         b3 = b2 * b
         c1 = -b3
@@ -41,7 +43,7 @@ class TrendContinuation(EntryIndicator,ExitIndicator):
         w1 = 2 / (n1 + 1)
         w2 = 1 - w1
 
-        close = data['close']
+        close = data.CLOSE
         buy_buffer = np.zeros_like(close)
         sell_buffer = np.zeros_like(close)
 

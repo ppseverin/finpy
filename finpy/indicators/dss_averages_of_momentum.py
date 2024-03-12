@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from finpy.indicator_types.utils import ma_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
+from finpy.indicator_types.utils import ma_method,ensure_prices_instance_method
 
 class DSS_AverageOfMomentum(EntryIndicator,ExitIndicator):
     """
@@ -22,7 +22,7 @@ class DSS_AverageOfMomentum(EntryIndicator,ExitIndicator):
         - dss_averages_of_momentum
 
     Input:
-        - OHLC data: market data with open, high, low and close information
+        - OHLC data: market data with open, HIGH, LOW and CLOSE information
         - stochastic_length: period to make calculations. Default is 32
         - mom_period: period of momentum. Default is 14
         - smooth_ma_period: period of smooth moving average. Default is 9
@@ -33,7 +33,8 @@ class DSS_AverageOfMomentum(EntryIndicator,ExitIndicator):
     Output:
         - dss buffer, signal buffer
     """
-    def dss_averages_of_momentum(self,data, stochastic_length=32,mom_period = 14, smooth_ma_period=9, signal_ma_period=5,smooth_ma_method=1,signal_ma_method=1):
+    @ensure_prices_instance_method
+    def calculate(self,data, stochastic_length=32,mom_period = 14, smooth_ma_period=9, signal_ma_period=5,smooth_ma_method=1,signal_ma_method=1):
         """
         Calcula un indicador personalizado similar al indicador MQL4 proporcionado.
         
@@ -46,14 +47,14 @@ class DSS_AverageOfMomentum(EntryIndicator,ExitIndicator):
         dssBuffer = np.empty_like(data.shape[0])
         sigBuffer = np.empty_like(data.shape[0])
         
-        momc = data.close - data.close.shift(mom_period)
-        momh = data.high - data.high.shift(mom_period)
-        moml = data.low - data.low.shift(mom_period)
+        momc = data.CLOSE - data.CLOSE.shift(mom_period)
+        momh = data.HIGH - data.HIGH.shift(mom_period)
+        moml = data.LOW - data.LOW.shift(mom_period)
         # Calculando el oscilador estocástico
-        dssBuffer = self._i_dss(momc,momh,moml,data.tick_volume,stochastic_length,smooth_ma_period,smooth_ma_method)
+        dssBuffer = self._i_dss(momc,momh,moml,data.TICK_VOLUME,stochastic_length,smooth_ma_period,smooth_ma_method)
         
         if smooth_ma_method == 9:
-            sigBuffer = ma_method(signal_ma_method)(dssBuffer,data.tick_volume,signal_ma_period)
+            sigBuffer = ma_method(signal_ma_method)(dssBuffer,data.TICK_VOLUME,signal_ma_period)
         else:
             sigBuffer = ma_method(signal_ma_method)(dssBuffer,signal_ma_period)
         

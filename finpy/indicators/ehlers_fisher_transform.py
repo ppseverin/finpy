@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from finpy.indicator_types.utils import get_price
+from finpy.indicator_types.utils import ensure_prices_instance_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 
 class EhlersFisherTransform(EntryIndicator,ExitIndicator):
@@ -38,9 +38,10 @@ class EhlersFisherTransform(EntryIndicator,ExitIndicator):
     Output:
         - fisher value, signal value
     """
+    @ensure_prices_instance_method
     def ehlers_fisher_transform(self,data, period=10, weight=2, signal_period=9, price_type='median'):
         # Inicialización de buffers
-        prices = get_price(data, price_type)
+        prices = data.get_price(price_type)
         # print(prices)
         alpha = 2.0 / (1.0 + weight)
         ema_alpha = 2.0 / (1.0 + signal_period)
@@ -50,7 +51,7 @@ class EhlersFisherTransform(EntryIndicator,ExitIndicator):
         min_l = prices.rolling(window=period).min()
         
         values = pd.Series(0,index=prices.index)
-        values = np.zeros_like(data.close)
+        values = np.zeros_like(data.CLOSE)
         fisher_value = np.zeros_like(values)
         signal_value = np.zeros_like(values)
 

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from finpy.indicator_types.utils import get_price,ma_method
+from finpy.indicator_types.utils import ma_method,ensure_prices_instance_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator,BaselineIndicator
 
 class MegaTrend(EntryIndicator,ExitIndicator,BaselineIndicator):
@@ -39,12 +39,13 @@ class MegaTrend(EntryIndicator,ExitIndicator,BaselineIndicator):
     Output:
         - upTrend, dnTrend, vect2
     """
+    @ensure_prices_instance_method
     def calculate(self,data,period=15,method=3,price=0):
         p = int(np.sqrt(period))
         e = data.shape[0] + 1 + period + 1
         if e>data.shape[0]+1:
             e=data.shape[0]+1
-        price_used = get_price(data,price)
+        price_used = data.get_price(price)
         vect = 2*ma_method(method)(price_used,int(period/2))-ma_method(method)(price_used,period)
         vect2 = pd.Series(vect).rolling(p).mean()
         n = vect2.shape[0]

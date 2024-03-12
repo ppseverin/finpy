@@ -1,6 +1,6 @@
 import numpy as np
 
-from finpy.indicator_types.utils import get_price,mql4_atr,ma_method
+from finpy.indicator_types.utils import mql4_atr,ma_method,ensure_prices_instance_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 
 class AngleOfAverage(EntryIndicator,ExitIndicator):
@@ -41,10 +41,11 @@ class AngleOfAverage(EntryIndicator,ExitIndicator):
     Output:
         - buffer1, buffer2, buffer3, state, angle
     """
+    @ensure_prices_instance_method
     def calculate(self,data,period=34,avg_type=1,price='close',angle_level=8,angle_bars=6):
-        price_used = get_price(data,price)
+        price_used = data.get_price(price)
         if avg_type == 9 or avg_type == 'volume weghted ma':
-            avg_price = ma_method(avg_type)(price_used,data.tick_volume,period)
+            avg_price = ma_method(avg_type)(price_used,data.TICK_VOLUME,period)
         else:
             avg_price = ma_method(avg_type)(price_used,period)
         atr = mql4_atr(data, angle_bars * 20)

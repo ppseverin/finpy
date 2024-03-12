@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+from finpy.indicator_types.utils import ensure_prices_instance_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 
 class Vortex(EntryIndicator,ExitIndicator):
@@ -18,7 +19,7 @@ class Vortex(EntryIndicator,ExitIndicator):
         - When plus vi is under minus vi and crosses, its sell signal
 
     Calculation method:
-        - vortex_indicator
+        - calculate
 
     Input:
         - OHLC data: market data with open, high, low and close information
@@ -27,16 +28,17 @@ class Vortex(EntryIndicator,ExitIndicator):
     Output:
         - plus vi, minus vi
     """
-    def vortex_indicator(self,data, length=28):
+    @ensure_prices_instance_method
+    def calculate(self,data, length=28):
         # Calculando True Range (TR)
-        high_low = data['high'] - data['low']
-        high_close = np.abs(data['high'] - data['close'].shift())
-        low_close = np.abs(data['low'] - data['close'].shift())
+        high_low = data.HIGH - data.LOW
+        high_close = np.abs(data.HIGH - data.CLOSE.shift())
+        low_close = np.abs(data.LOW - data.CLOSE.shift())
         tr = pd.DataFrame({'hl': high_low, 'hc': high_close, 'lc': low_close}).max(axis=1)
 
         # Calculando Vortex Movements (VM)
-        plus_vm = np.abs(data['high'] - data['low'].shift())
-        minus_vm = np.abs(data['low'] - data['high'].shift())
+        plus_vm = np.abs(data.HIGH - data.LOW.shift())
+        minus_vm = np.abs(data.LOW - data.HIGH.shift())
 
         # Suma de Vortex Movements y True Range para 'length' periodos
         sum_plus_vm = plus_vm.rolling(window=length).sum()

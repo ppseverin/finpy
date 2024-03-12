@@ -2,12 +2,23 @@ import talib
 import numpy as np
 import pandas as pd
 
+from finpy.indicator_types.price_types import Prices
+
+
+def ensure_prices_instance_method(method):
+    def wrapper(self,data,*args,**kwargs):
+        if not isinstance(data,Prices):
+            data = Prices(data)
+        return method(self,data,*args,**kwargs)
+    return wrapper
 
 def mql4_atr(data, period=14):
-    _data = data.reset_index(drop=True).copy()
-    high = _data.high
-    low = _data.low
-    close = _data.close
+    if not isinstance(data,Prices):
+        data = Prices(data)
+    # _data = data.reset_index(drop=True).copy()
+    high = data.HIGH.to_numpy()
+    low = data.LOW.to_numpy()
+    close = data.CLOSE.to_numpy()
     rates_total = len(close)
     
     if rates_total <= period or period <= 0:

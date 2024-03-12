@@ -1,6 +1,7 @@
 import numpy as np
 
-from finpy.indicator_types.utils import get_price,ma_method
+
+from finpy.indicator_types.utils import ma_method,ensure_prices_instance_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator,BaselineIndicator
 
 class AdaptativeSmootherTriggerlines(EntryIndicator,ExitIndicator,BaselineIndicator):
@@ -37,9 +38,10 @@ class AdaptativeSmootherTriggerlines(EntryIndicator,ExitIndicator,BaselineIndica
     Output:
         - lsma, lwma
     """
+    @ensure_prices_instance_method
     def calculate(self,data,period=50,price=0,adapt_period=21):
-        price_used = get_price(data,price)
-        stddev = ma_method('std')(data.close,adapt_period)
+        price_used = data.get_price(price)
+        stddev = ma_method('std')(data.CLOSE,adapt_period)
         stddev = np.where(stddev!=stddev,0,stddev)
         avg = ma_method(0)(stddev,adapt_period)
         avg = np.where(avg!=avg,0,avg)
