@@ -56,7 +56,7 @@ from finpy.indicators import DSS_AverageOfMomentum
 dataset = pd.read_csv('path/to/your/data.csv')
 
 dss = DSS_AverageOfMomentum()
-dss, signal = dss.dss_averages_of_momentum(dataset)
+dss, signal = dss.calculate(dataset)
 ```
 Thats it!
 
@@ -67,9 +67,11 @@ from finpy.indicator_types.indicator_types import IndicatorTypes
 print("Entry Indicators:", [indicator.__name__ for indicator in IndicatorTypes.entry ])
 print("Exit Indicators:", [indicator.__name__ for indicator in IndicatorTypes.exit])
 ```
+I have included a csv file of the EURUSD M15 OHLC data so you can try without having to search too much.
 
 ## Contributing
 Contributions are welcome, especially from traders who are using the NNFX methodology and have indicators or improvements to share.
+There is a list of MQL4 indicators to be translated that can be found on this [repository](https://github.com/ppseverin/finpy_mql4).
 
 ## Acknowledgments
 This project stands on the shoulders of the vibrant open-source community and the collective wisdom of Forex traders worldwide. While the indicators translated and implemented here are derived from publicly available sources, the effort to adapt them to Python and the No Nonsense Forex (NNFX) methodology is an original endeavor aimed at providing the trading community with more tools and resources.
