@@ -1,19 +1,16 @@
 import numpy as np
 
-from finpy.indicator_types.utils import ma_method,ensure_prices_instance_method
-from finpy.indicator_types.categories import EntryIndicator,ExitIndicator,BaselineIndicator
+from finpy.indicator_types.utils import ma_method
+from finpy.indicator_types.signal_functions import two_cross_signal
+from finpy.indicator_types.categories import BaselineIndicator
 
 
-class AllMovingAverages(EntryIndicator,ExitIndicator,BaselineIndicator):
+class AllMovingAverages(BaselineIndicator):
     """
     All Moving Average indicator
 
     Main use:
         - baseline indicator
-        
-    Secondary use:
-        - entry indicator
-        - exit indicator
 
     Typical use:
         - scenario 1:
@@ -37,7 +34,6 @@ class AllMovingAverages(EntryIndicator,ExitIndicator,BaselineIndicator):
     Output:
         - moving average buffer
     """
-    @ensure_prices_instance_method
     def calculate(self,data,period=50,price=0):
         price_used = data.get_price(price)
         moving_average_codes = [0,1,21,6,12,28,13,22,10,16,23,25,26,24,27,14,11]
@@ -46,3 +42,8 @@ class AllMovingAverages(EntryIndicator,ExitIndicator,BaselineIndicator):
             ma[index] = ma_method(code)(price_used,period)
         ma = ma.mean(axis=0)
         return ma
+    
+    def baseline_signal(self, *args, **kwargs):
+        ma = self._last_calculate_result
+        price = self._last_calculate_kwargs['data']
+        return two_cross_signal(price.CLOSE,ma)

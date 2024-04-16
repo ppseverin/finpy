@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from finpy.indicator_types.utils import mql4_atr,ensure_prices_instance_method
+from finpy.indicator_types.utils import mql4_atr
+from finpy.indicator_types.signal_functions import two_cross_signal,one_over_other
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator,BaselineIndicator
 
 class TradeWithTrend(EntryIndicator,ExitIndicator,BaselineIndicator):
@@ -32,7 +33,7 @@ class TradeWithTrend(EntryIndicator,ExitIndicator,BaselineIndicator):
     Output:
         - buffer1, buffer2, signal
     """
-    @ensure_prices_instance_method
+    
     def calculate(self,data,period=4,multiplier=2.0):
         atr = mql4_atr(data,period)
         _data = pd.DataFrame()
@@ -106,3 +107,21 @@ class TradeWithTrend(EntryIndicator,ExitIndicator,BaselineIndicator):
                         buffer2[index - 1] = buffer1[index - 1]
                         gi_84=False
         return buffer1,buffer2
+    
+    def entry_signal(self, *args, **kwargs):
+        buffer1,buffer2,signal = self._last_calculate_result
+        if self.main_confirmation_indicator:
+            return two_cross_signal(buffer1,buffer2)
+        return one_over_other(buffer1,buffer2)
+        
+    
+    def exit_signal(self, *args, **kwargs):
+        buffer1,buffer2,signal = self._last_calculate_result
+        return two_cross_signal(buffer1,buffer2,bos_signal=False)
+    
+    def baseline_signal(self, *args, **kwargs):
+        buffer1,buffer2,signal = self._last_calculate_result
+        values = np.where(buffer1>buffer2,buffer1,buffer2)
+        price = self._last_calculate_kwargs['data']
+        return two_cross_signal(price.CLOSE,values)
+        

@@ -1,6 +1,6 @@
 import numpy as np
 
-from finpy.indicator_types.utils import ensure_prices_instance_method
+from finpy.indicator_types.signal_functions import one_over_other,zero_cross_signal
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 
 class JurikVoltyBands(EntryIndicator,ExitIndicator):
@@ -32,7 +32,7 @@ class JurikVoltyBands(EntryIndicator,ExitIndicator):
         - upValues, dnValues, miValue, prices
 
     """
-    @ensure_prices_instance_method
+    
     def calculate(self, data, length=14, price=0, shift=0, normalize=False,zero_bind=True):
         applied_price = data.get_price(price)
         cprice = data[applied_price]
@@ -127,3 +127,13 @@ class JurikVoltyBands(EntryIndicator,ExitIndicator):
         
         miValue = (wrk_bsmin+wrk_bsmax)/2.0
         return wrk_bsmax,wrk_bsmin,miValue
+    
+    def entry_signal(self, *args, **kwargs):
+        upValues,dnValues,miValue,prices = self._last_calculate_result
+        if self.main_confirmation_indicator:
+            return zero_cross_signal(prices)
+        return one_over_other(prices)
+    
+    def exit_signal(self, *args, **kwargs):
+        upValues,dnValues,miValue,prices = self._last_calculate_result
+        return zero_cross_signal(prices,bos_signal=False)

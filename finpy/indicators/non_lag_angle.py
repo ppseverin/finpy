@@ -1,7 +1,8 @@
 import numpy as np
 
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
-from finpy.indicator_types.utils import mql4_atr,ensure_prices_instance_method
+from finpy.indicator_types.utils import mql4_atr
+from finpy.indicator_types.signal_functions import zero_cross_signal,one_over_other
 
 class NonLagAngle(EntryIndicator,ExitIndicator):
     """
@@ -78,7 +79,7 @@ class NonLagAngle(EntryIndicator,ExitIndicator):
         return nlm_full
 
     
-    @ensure_prices_instance_method
+    
     def calculate(self,data, nlma_period=14, angle_level=8.0, angle_bars=6, nlma_price = 0):
         # Calcula los valores del ATR y la Media Móvil No Retrasada
         atr = mql4_atr(data, angle_bars * 20)
@@ -94,3 +95,13 @@ class NonLagAngle(EntryIndicator,ExitIndicator):
         buffer3 = np.where((-angle_level<angle) & (angle<angle_level),angle,np.nan)
 
         return buffer1, buffer2, buffer3, angle
+    
+    def entry_signal(self, *args, **kwargs):
+        buffer1, buffer2, buffer3, angle = self._last_calculate_result
+        if self.main_confirmation_indicator:
+            return zero_cross_signal(angle)
+        return one_over_other(angle)
+    
+    def exit_signal(self, *args, **kwargs):
+        buffer1, buffer2, buffer3, angle = self._last_calculate_result
+        return zero_cross_signal(angle,bos_signal=False)

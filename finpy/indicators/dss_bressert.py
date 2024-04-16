@@ -1,5 +1,5 @@
-from finpy.indicator_types.utils import ensure_prices_instance_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
+from finpy.indicator_types.signal_functions import two_cross_signal,one_over_other
 
 class DSS_Bressert(EntryIndicator,ExitIndicator):
     """
@@ -26,7 +26,7 @@ class DSS_Bressert(EntryIndicator,ExitIndicator):
     Output:
         - dss buffer, dss up, dss down
     """
-    @ensure_prices_instance_method
+    
     def calculate(self,data, smma_period=8, stochastic_period=5):
         smooth_coefficient = 2/(1+smma_period)
 
@@ -46,3 +46,13 @@ class DSS_Bressert(EntryIndicator,ExitIndicator):
         dss_down = (dss_buffer<dss_buffer.shift(1)).astype(float)
 
         return dss_buffer, dss_up, dss_down
+
+    def entry_signal(self, *args, **kwargs):
+        dss_buffer, dss_up, dss_down = self._last_calculate_result
+        if self.main_confirmation_indicator:
+            return two_cross_signal(dss_up,dss_down)
+        return one_over_other(dss_up,dss_down)
+    
+    def exit_signal(self, *args, **kwargs):
+        dss_buffer, dss_up, dss_down = self._last_calculate_result
+        return two_cross_signal(dss_up,dss_down,bos_signal=False)

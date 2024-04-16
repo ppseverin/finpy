@@ -1,6 +1,7 @@
 import numpy as np
 
-from finpy.indicator_types.utils import mql4_atr,ma_method,ensure_prices_instance_method
+from finpy.indicator_types.utils import mql4_atr,ma_method
+from finpy.indicator_types.signal_functions import zero_cross_signal,one_over_other
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 
 class AngleOfAverage(EntryIndicator,ExitIndicator):
@@ -41,7 +42,6 @@ class AngleOfAverage(EntryIndicator,ExitIndicator):
     Output:
         - buffer1, buffer2, buffer3, state, angle
     """
-    @ensure_prices_instance_method
     def calculate(self,data,period=34,avg_type=1,price='close',angle_level=8,angle_bars=6):
         price_used = data.get_price(price)
         if avg_type == 9 or avg_type == 'volume weghted ma':
@@ -56,4 +56,16 @@ class AngleOfAverage(EntryIndicator,ExitIndicator):
         buffer2 = np.where(angle < -angle_level, angle, np.nan)
         buffer3 = np.where((-angle_level<angle) & (angle<angle_level),angle,np.nan)
         state = np.where(angle>angle_level,1,np.where(angle<-angle_level,-1,0))
+        angle.fillna(0,inplace=True)
+        angle = angle.to_numpy()
         return buffer1,buffer2,buffer3,state,angle
+    
+    def entry_signal(self, *args, **kwargs):
+        _,_,_,_,angle = self._last_calculate_result
+        if self.main_confirmation_indicator:
+            return zero_cross_signal(angle)
+        return one_over_other(angle)
+    
+    def exit_signal(self, *args, **kwargs):
+        _,_,_,_,angle = self._last_calculate_result
+        return zero_cross_signal(angle,bos_signal=False)

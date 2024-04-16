@@ -1,9 +1,10 @@
 import numpy as np
 
-from finpy.indicator_types.utils import ma_method,ensure_prices_instance_method
-from finpy.indicator_types.categories import EntryIndicator,ExitIndicator,BaselineIndicator
+from finpy.indicator_types.utils import ma_method
+from finpy.indicator_types.signal_functions import two_cross_signal
+from finpy.indicator_types.categories import BaselineIndicator
 
-class AveragesMTF(EntryIndicator,ExitIndicator,BaselineIndicator):
+class AveragesMTF(BaselineIndicator):
     """
     Averages MTF indicator
 
@@ -19,7 +20,7 @@ class AveragesMTF(EntryIndicator,ExitIndicator,BaselineIndicator):
         - When values is over close price and crosses, its sell signal
 
     Calculation method:
-        - dss_averages_of_momentum
+        - calculate
 
     Input:
         - OHLC data: market data with open, high, low and close information
@@ -33,7 +34,7 @@ class AveragesMTF(EntryIndicator,ExitIndicator,BaselineIndicator):
     Output:
         - values, signal
     """
-    @ensure_prices_instance_method
+    
     def calculate(self,data,period=14,price=0,method=19):
         price_used = data.get_price(price).to_numpy()
         n = price_used.shape[0]
@@ -44,3 +45,8 @@ class AveragesMTF(EntryIndicator,ExitIndicator,BaselineIndicator):
         signal = np.zeros(n)
         signal[1:] = np.where(values[1:]>values[:-1],1,np.where(values[1:]<values[:-1],-1,0))        
         return values,signal
+    
+    def baseline_signal(self, *args, **kwargs):
+        values,signal = self._last_calculate_result
+        price = self._last_calculate_kwargs['data']
+        return two_cross_signal(price.CLOSE,values)

@@ -1,16 +1,101 @@
 import talib
+import inspect
 import numpy as np
 import pandas as pd
+
+from functools import wraps
 
 from finpy.indicator_types.price_types import Prices
 
 
 def ensure_prices_instance_method(method):
+    @wraps(method)
     def wrapper(self,data,*args,**kwargs):
         if not isinstance(data,Prices):
             data = Prices(data)
         return method(self,data,*args,**kwargs)
     return wrapper
+
+# def calculate_before_signal(method):
+#     # def decorated_calculate(self,*args,**kwargs):
+#     #     self.last_calculate_args = args
+#     #     self.last_calculate_kwargs = kwargs
+#     #     return method(self,*args,**kwargs)
+    
+#     # def wrapper(self,*args,**kwargs):
+#     #     output = self.calculate(*args,**kwargs)
+#     #     return method(self,output,*args,**kwargs)
+#     # def wrapper(self,*args,**kwargs):
+#     #     self.calculate = decorated_calculate.__get__(self,type(self))
+#     #     return self.calculate(*args,**kwargs)
+#     def wrapper(self,*args,**kwargs):
+#         print('[KWARGS EN calculate_before_signal]',kwargs)
+#         if not hasattr(self,'_last_calculate_result'):
+#             self._last_calculate_args = args
+#             self._last_calculate_kwargs = kwargs
+#             self._last_calculate_result = self.calculate(*args,**kwargs)
+#         return method(self,*args,**kwargs)
+#     return wrapper
+
+
+def calculate_before_signal(method):
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        def _compare_calculate_args(new_args, new_kwargs):
+            """Compara los nuevos argumentos con los últimos utilizados en 'calculate'."""
+            last_args, last_kwargs = self._last_calculate_args
+            # Compara los argumentos posicionales y con palabra clave
+            return last_args == new_args and last_kwargs == new_kwargs
+        
+        if not hasattr(self, '_last_calculate_result') or not hasattr(self, '_last_calculate_args'):# or not _compare_calculate_args(args, kwargs):
+            # Obtener la signatura de la función 'calculate'
+            sig = inspect.signature(self.calculate)
+            
+            # Vincular los argumentos actuales a los parámetros, incluyendo los valores por defecto
+            bound_args = sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+
+            # Separar argumentos posicionales y con palabra clave
+            arguments = bound_args.arguments
+            # self._last_calculate_args = [arguments[param.name] for param in sig.parameters.values() 
+            #                             if param.name != 'self' and param.kind in [inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            #                                                                         inspect.Parameter.POSITIONAL_ONLY]]
+            self._last_calculate_args = (args, kwargs)
+            self._last_calculate_kwargs = {param.name: arguments[param.name] for param in sig.parameters.values()
+                                        if param.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD}
+            
+            # Ejecutar 'calculate' y almacenar el resultado
+            calculate_result = self.calculate(**self._last_calculate_kwargs)
+            self._last_calculate_result = calculate_result
+
+        # Proceder con la ejecución del método original
+        return method(self, *args, **kwargs)
+    return wrapper
+
+def inject_prices_instance(func):
+    def wrapper(self,*args, **kwargs):
+        prices = get_prices_instance(*args, **kwargs)
+        if prices is None:
+            prices = self._last_calculate_kwargs['data']
+            # raise ValueError("Prices instance not found in arguments")
+        return func(self,*args, **kwargs, prices=prices)
+    return wrapper
+
+def calculate_and_inject_prices(method):
+    @calculate_before_signal
+    @inject_prices_instance
+    def wrapper(self,*args,**kwrags):
+        return method(self,*args,**kwrags)
+    return wrapper
+
+
+def get_prices_instance(*args,**kwargs):
+    for arg in args:
+        if isinstance(arg,Prices):
+            return arg
+    for value in kwargs.values():
+        if isinstance(value,Prices):
+            return value
 
 def mql4_atr(data, period=14):
     if not isinstance(data,Prices):

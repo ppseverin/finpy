@@ -1,6 +1,6 @@
 import numpy as np
 
-from finpy.indicator_types.utils import ensure_prices_instance_method
+from finpy.indicator_types.signal_functions import two_cross_signal
 from finpy.indicator_types.categories import BaselineIndicator
 
 class EhlersTwoPoleSuperSmootherFilter(BaselineIndicator):
@@ -21,7 +21,7 @@ class EhlersTwoPoleSuperSmootherFilter(BaselineIndicator):
     Output:
         - values
     """
-    @ensure_prices_instance_method
+    
     def calculate(self,data,cutoff_period=15):
         temp_real = np.arctan(1)
         rad2deg = 45/temp_real
@@ -37,3 +37,8 @@ class EhlersTwoPoleSuperSmootherFilter(BaselineIndicator):
         for i in range(4,n):
             values[i] = coef1 * prices[i] + b1 * values[i-1] + coef3 * values[i-2]
         return values
+    
+    def baseline_signal(self, *args, **kwargs):
+        values = self._last_calculate_result
+        price = self._last_calculate_kwargs['data']
+        return two_cross_signal(price.CLOSE,values)

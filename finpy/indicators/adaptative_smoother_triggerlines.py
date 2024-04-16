@@ -1,7 +1,8 @@
 import numpy as np
 
 
-from finpy.indicator_types.utils import ma_method,ensure_prices_instance_method
+from finpy.indicator_types.utils import ma_method
+from finpy.indicator_types.signal_functions import two_cross_signal,one_over_other
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator,BaselineIndicator
 
 class AdaptativeSmootherTriggerlines(EntryIndicator,ExitIndicator,BaselineIndicator):
@@ -38,7 +39,7 @@ class AdaptativeSmootherTriggerlines(EntryIndicator,ExitIndicator,BaselineIndica
     Output:
         - lsma, lwma
     """
-    @ensure_prices_instance_method
+    
     def calculate(self,data,period=50,price=0,adapt_period=21):
         price_used = data.get_price(price)
         stddev = ma_method('std')(data.CLOSE,adapt_period)
@@ -46,7 +47,13 @@ class AdaptativeSmootherTriggerlines(EntryIndicator,ExitIndicator,BaselineIndica
         avg = ma_method(0)(stddev,adapt_period)
         avg = np.where(avg!=avg,0,avg)
 
-        _period = np.where(stddev!=0,period*avg/stddev,period)
+        # _period = np.where(stddev!=0.0,(period*avg)/stddev,period)
+        _period = np.zeros(avg.shape[0])
+        for i,a in enumerate(stddev):
+            if a!=0:
+                _period[i] = period*avg[i]/a
+            else:
+                _period[i] = period
         _period = np.where(_period <3,3,_period)
         
         np_price = price_used.to_numpy()
@@ -74,3 +81,19 @@ class AdaptativeSmootherTriggerlines(EntryIndicator,ExitIndicator,BaselineIndica
         self._work_smooth3[r] = (self._work_smooth2[r] - self._work_smooth4[r-1])*np.power(1.0-alpha,2) + np.power(alpha,2)*self._work_smooth3[r-1]
         self._work_smooth4[r] =  self._work_smooth3[r] + self._work_smooth4[r-1]
         return self._work_smooth4[r]
+    
+    def baseline_signal(self,*args,**kwargs):
+        lsma,lwma = self._last_calculate_result
+        price = self._last_calculate_kwargs['data']
+        return two_cross_signal(price.CLOSE,lsma)
+    
+    def entry_signal(self, *args, **kwargs):
+        lsma,lwma = self._last_calculate_result
+        if self.main_confirmation_indicator:
+            return two_cross_signal(lsma,lwma)
+        return one_over_other(lsma,lwma)
+    
+    def exit_signal(self, *args, **kwargs):
+        lsma,lwma = self._last_calculate_result
+        return two_cross_signal(lsma,lwma,bos_signal=False)
+        

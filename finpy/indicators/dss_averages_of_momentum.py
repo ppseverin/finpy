@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
 
+from finpy.indicator_types.signal_functions import two_cross_signal,one_over_other
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
-from finpy.indicator_types.utils import ma_method,ensure_prices_instance_method
+from finpy.indicator_types.utils import ma_method
 
 class DSS_AverageOfMomentum(EntryIndicator,ExitIndicator):
     """
@@ -31,9 +32,9 @@ class DSS_AverageOfMomentum(EntryIndicator,ExitIndicator):
         - signal_ma_method: signal moving average method. Default is 1
 
     Output:
-        - dss buffer, signal buffer
+        - dssBuffer, signalBuffer
     """
-    @ensure_prices_instance_method
+    
     def calculate(self,data, stochastic_length=32,mom_period = 14, smooth_ma_period=9, signal_ma_period=5,smooth_ma_method=1,signal_ma_method=1):
         """
         Calcula un indicador personalizado similar al indicador MQL4 proporcionado.
@@ -44,8 +45,9 @@ class DSS_AverageOfMomentum(EntryIndicator,ExitIndicator):
         :param signal_ma_period: Período del promedio móvil para la línea de señal.
         :return: dssBuffer,sigBuffer
         """
-        dssBuffer = np.empty_like(data.shape[0])
-        sigBuffer = np.empty_like(data.shape[0])
+        n = data.CLOSE.shape[0]
+        dssBuffer = np.empty_like(n)
+        sigBuffer = np.empty_like(n)
         
         momc = data.CLOSE - data.CLOSE.shift(mom_period)
         momh = data.HIGH - data.HIGH.shift(mom_period)
@@ -97,3 +99,13 @@ class DSS_AverageOfMomentum(EntryIndicator,ExitIndicator):
         workDss_dss = pd.Series(ma)
         workDss_dss = workDss_dss.apply(lambda x: min(max(x,0),100))
         return workDss_dss
+    
+    def entry_signal(self, *args, **kwargs):
+        dssBuffer,sigBuffer = self._last_calculate_result
+        if self.main_confirmation_indicator:
+            return two_cross_signal(dssBuffer,sigBuffer)
+        return one_over_other(dssBuffer,sigBuffer)
+    
+    def exit_signal(self, *args, **kwargs):
+        dssBuffer,sigBuffer = self._last_calculate_result
+        return two_cross_signal(dssBuffer,sigBuffer,bos_signal=False)

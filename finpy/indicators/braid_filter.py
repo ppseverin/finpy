@@ -1,8 +1,9 @@
 import talib
 import numpy as np
 
+from finpy.indicator_types.signal_functions import one_over_other, two_cross_signal
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
-from finpy.indicator_types.utils import calculate_smma,ensure_prices_instance_method
+from finpy.indicator_types.utils import calculate_smma
 
 class BraidFilter(EntryIndicator,ExitIndicator):
     """
@@ -37,14 +38,14 @@ class BraidFilter(EntryIndicator,ExitIndicator):
     Output:
         - cross up, cross down, filter atr
     """
-    @ensure_prices_instance_method
+    
     def calculate(self,data,period1=5,period2=8,period3=20,ma_type=1,pips_min_sep_percent=50,atr_period=14):
         if ma_type not in [0,1,2]:
             raise ValueError('ma_type value not admitted. Admitted values are 0, 1 or 2')
-        
+        data_shape = data.CLOSE.shape[0]
         # Inicialización de los buffers
-        cross_up = np.zeros(len(data))
-        cross_down = np.zeros(len(data))
+        cross_up = np.zeros(data_shape)
+        cross_down = np.zeros(data_shape)
         filter_atr = talib.ATR(data.HIGH, data.LOW, data.CLOSE, timeperiod=atr_period) * pips_min_sep_percent / 100.0
         
         if ma_type==2:
@@ -56,7 +57,7 @@ class BraidFilter(EntryIndicator,ExitIndicator):
             ema8 = talib.MA(data.OPEN, period2, ma_type)
             ema20 = talib.MA(data.CLOSE, period3, ma_type)
 
-        for i in range(len(data)):
+        for i in range(data_shape):
             # Lógica para determinar CrossUp y CrossDown
             if ema5[i] > ema8[i]:
                 cross_up[i] = self._get_dif(ema5[i], ema8[i], ema20[i])
@@ -69,3 +70,13 @@ class BraidFilter(EntryIndicator,ExitIndicator):
         max_val = max(ma5, ma8, ma20)
         min_val = min(ma5, ma8, ma20)
         return max_val - min_val
+    
+    def entry_signal(self, *args, **kwargs):
+        cross_up, cross_down, filter_atr = self._last_calculate_result
+        if self.main_confirmation_indicator:
+            return two_cross_signal(cross_up,cross_down)
+        return one_over_other(cross_up,cross_down)
+    
+    def exit_signal(self, *args, **kwargs):
+        cross_up, cross_down, filter_atr = self._last_calculate_result
+        return two_cross_signal(cross_up,cross_down,bos_signal=False)

@@ -1,10 +1,10 @@
 import numpy as np
 
-from finpy.indicator_types.utils import ensure_prices_instance_method
-from finpy.indicator_types.categories import EntryIndicator,ExitIndicator,BaselineIndicator
+from finpy.indicator_types.signal_functions import two_cross_signal
+from finpy.indicator_types.categories import BaselineIndicator
 
 
-class KalmanFilter(EntryIndicator,ExitIndicator,BaselineIndicator):
+class KalmanFilter(BaselineIndicator):
     """
     Kalman Filter indicator
 
@@ -39,7 +39,7 @@ class KalmanFilter(EntryIndicator,ExitIndicator,BaselineIndicator):
     Output:
         - upBuffer, dnBuffer, values
     """
-    @ensure_prices_instance_method
+    
     def calculate(self,data,mode=6,k=1,sharpness=1):
         velocity = 0
         distance = 0
@@ -66,3 +66,8 @@ class KalmanFilter(EntryIndicator,ExitIndicator,BaselineIndicator):
                 if dnBuffer[i-1] == np.nan:
                     dnBuffer[i-1] = upBuffer[i-1]
         return upBuffer,dnBuffer,values
+    
+    def baseline_signal(self, *args, **kwargs):
+        values = self._last_calculate_result
+        price = self._last_calculate_kwargs['data']
+        return two_cross_signal(price.CLOSE,values)

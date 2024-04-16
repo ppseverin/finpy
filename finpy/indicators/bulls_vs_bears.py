@@ -1,7 +1,7 @@
 import talib
 import numpy as np
 
-from finpy.indicator_types.utils import ensure_prices_instance_method
+from finpy.indicator_types.signal_functions import two_cross_signal,one_over_other
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 
 class BullsVsBears(EntryIndicator,ExitIndicator):
@@ -19,7 +19,7 @@ class BullsVsBears(EntryIndicator,ExitIndicator):
         - When bulls are under bears and crosses, its sell signal
 
     Calculation method:
-        - bulls_vs_bears
+        - calculate
 
     Input:
         - OHLC data: market data with open, high, low and close information
@@ -28,11 +28,11 @@ class BullsVsBears(EntryIndicator,ExitIndicator):
     Output:
         - bulls line,bears line
     """
-    @ensure_prices_instance_method
-    def bulls_vs_bears(self,data, inp_period=13):
+    def calculate(self,data, inp_period=13):
+        n = data.CLOSE.shape[0]
         # Inicialización de los buffers
-        ext_bulls_buffer = np.zeros(len(data))
-        ext_bears_buffer = np.zeros(len(data))
+        ext_bulls_buffer = np.zeros(n)
+        ext_bears_buffer = np.zeros(n)
 
         # Calcula la EMA del precio de cierre
         ema_close = talib.EMA(data.CLOSE, timeperiod=inp_period)
@@ -42,3 +42,13 @@ class BullsVsBears(EntryIndicator,ExitIndicator):
         ext_bears_buffer = ema_close - data.LOW
 
         return ext_bulls_buffer, ext_bears_buffer
+    
+    def entry_signal(self, *args, **kwargs):
+        ext_bulls_buffer, ext_bears_buffer = self._last_calculate_result
+        if self.main_confirmation_indicator:
+            return two_cross_signal(ext_bulls_buffer,ext_bears_buffer)
+        return one_over_other(ext_bulls_buffer,ext_bears_buffer)
+    
+    def exit_signal(self, *args, **kwargs):
+        ext_bulls_buffer, ext_bears_buffer = self._last_calculate_result
+        return two_cross_signal(ext_bulls_buffer,ext_bears_buffer,bos_signal=False)

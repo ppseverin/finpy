@@ -1,5 +1,8 @@
+from finpy.indicator_types.utils import ma_method
 from finpy.indicator_types.categories import BaselineIndicator
-from finpy.indicator_types.utils import ma_method,ensure_prices_instance_method
+from finpy.indicator_types.signal_functions import two_cross_signal
+
+
 
 class Sma(BaselineIndicator):
     """
@@ -19,7 +22,12 @@ class Sma(BaselineIndicator):
     Output:
         - sma values
     """
-    @ensure_prices_instance_method
+    
     def calculate(self,data,price=0,period=14):
         price_used = data.get_price(price)
         return ma_method('sma')(price_used,period)
+    
+    def baseline_signal(self, *args, **kwargs):
+        sma = self._last_calculate_result
+        price = self._last_calculate_kwargs['data']
+        return two_cross_signal(price.CLOSE,sma)
