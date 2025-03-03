@@ -84,6 +84,12 @@ class AdaptativeSmootherTriggerlines(EntryIndicator,ExitIndicator,BaselineIndica
     
     def baseline_signal(self,*args,**kwargs):
         lsma,lwma = self._last_calculate_result
+        print(self._last_calculate_args)
+        price = self._last_calculate_kwargs['data']
+        return two_cross_signal(price.CLOSE,lsma)
+    
+    def baseline_over_price(self, *args, **kwargs):
+        lsma,lwma = self._last_calculate_result
         price = self._last_calculate_kwargs['data']
         return two_cross_signal(price.CLOSE,lsma)
     

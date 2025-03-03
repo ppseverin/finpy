@@ -1,6 +1,6 @@
 import numpy as np
 
-from finpy.indicator_types.utils import ensure_prices_instance_method
+from finpy.indicator_types.signal_functions import two_cross_signal,one_over_other
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
 
 class TrendContinuation(EntryIndicator,ExitIndicator):
@@ -30,7 +30,7 @@ class TrendContinuation(EntryIndicator,ExitIndicator):
     Output:
         - buy buffer, sell buffer
     """
-    @ensure_prices_instance_method
+    
     def calculate(self,data, n=20, t3_period=5, b=0.618, count_bars=5000):
         b2 = b * b
         b3 = b2 * b
@@ -94,3 +94,13 @@ class TrendContinuation(EntryIndicator,ExitIndicator):
         e6 = w1 * e5 + w2 * e6_prev
         t3 = c1 * e6 + c2 * e5 + c3 * e4 + c4 * e3
         return t3, e1, e2, e3, e4, e5, e6
+    
+    def entry_signal(self, *args, **kwargs):
+        buy_buffer, sell_buffer = self._last_calculate_result
+        if self.main_confirmation_indicator:
+            return two_cross_signal(buy_buffer,sell_buffer)
+        return one_over_other(buy_buffer,sell_buffer)
+    
+    def exit_signal(self, *args, **kwargs):
+        buy_buffer, sell_buffer = self._last_calculate_result
+        return two_cross_signal(buy_buffer,sell_buffer,bos_signal=False)

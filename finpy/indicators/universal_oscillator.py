@@ -1,7 +1,9 @@
 import numpy as np
 
+from finpy.indicator_types.utils import ma_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
-from finpy.indicator_types.utils import ma_method,ensure_prices_instance_method
+from finpy.indicator_types.signal_functions import zero_cross_signal
+
 
 class UniversalOscillator(EntryIndicator,ExitIndicator):
     """
@@ -31,7 +33,7 @@ class UniversalOscillator(EntryIndicator,ExitIndicator):
         - price calculated, price calculated slope, price calculated zero cross, price calculated level cross
 
     """
-    @ensure_prices_instance_method
+    
     def calculate(self,data,band_edge=20,price='close',level_up=0.8,level_down=-0.8):
         price_used = data.get_price(price)
         white_noise = (price_used-price_used.shift(2))/2
@@ -48,3 +50,13 @@ class UniversalOscillator(EntryIndicator,ExitIndicator):
         unio_zero_cross = np.where(unio>0,1,np.where(unio<0,-1,0))
         unio_level_cross = np.where(unio>level_up,1,np.where(unio<level_down,-1,0))
         return unio,unio_slope,unio_zero_cross,unio_level_cross
+    
+    def entry_signal(self, *args, **kwargs):
+        unio,unio_slope,unio_zero_cross,unio_level_cross = self._last_calculate_result
+        if self.main_confirmation_indicator:
+            return zero_cross_signal(unio)
+        return zero_cross_signal(unio,bos_signal=False)
+    
+    def exit_signal(self, *args, **kwargs):
+        unio,unio_slope,unio_zero_cross,unio_level_cross = self._last_calculate_result
+        return zero_cross_signal(unio)

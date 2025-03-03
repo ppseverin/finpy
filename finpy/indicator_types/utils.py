@@ -41,11 +41,11 @@ def ensure_prices_instance_method(method):
 def calculate_before_signal(method):
     @wraps(method)
     def wrapper(self, *args, **kwargs):
-        def _compare_calculate_args(new_args, new_kwargs):
-            """Compara los nuevos argumentos con los últimos utilizados en 'calculate'."""
-            last_args, last_kwargs = self._last_calculate_args
-            # Compara los argumentos posicionales y con palabra clave
-            return last_args == new_args and last_kwargs == new_kwargs
+        # def _compare_calculate_args(new_args, new_kwargs):
+        #     """Compara los nuevos argumentos con los últimos utilizados en 'calculate'."""
+        #     last_args, last_kwargs = self._last_calculate_args
+        #     # Compara los argumentos posicionales y con palabra clave
+        #     return last_args == new_args and last_kwargs == new_kwargs
         
         if not hasattr(self, '_last_calculate_result') or not hasattr(self, '_last_calculate_args'):# or not _compare_calculate_args(args, kwargs):
             # Obtener la signatura de la función 'calculate'

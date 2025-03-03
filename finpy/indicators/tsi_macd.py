@@ -1,8 +1,10 @@
 import talib
 import numpy as np
 
+from finpy.indicator_types.utils import calculate_smma
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
-from finpy.indicator_types.utils import calculate_smma,ensure_prices_instance_method
+from finpy.indicator_types.signal_functions import two_cross_signal,one_over_other
+
 
 class TSIMacd(EntryIndicator,ExitIndicator):
     """
@@ -34,7 +36,7 @@ class TSIMacd(EntryIndicator,ExitIndicator):
     Output:
         - tsi, signal line
     """
-    @ensure_prices_instance_method
+    
     def calculate(self,data, fast=8, slow=21, signal=5, first_r=8, second_s=5, signal_period=5,mode_smooth=2):
         # Calcular MACD usando TA-Lib
         macd, macdsignal, macdhist = talib.MACD(data.CLOSE, fastperiod=fast, slowperiod=slow, signalperiod=signal)
@@ -60,3 +62,13 @@ class TSIMacd(EntryIndicator,ExitIndicator):
         else:
             signal_line = talib.MA(tsi, timeperiod=signal_period,matype=mode_smooth)
         return tsi, signal_line
+    
+    def entry_signal(self, *args, **kwargs):
+        tsi, signal_line = self._last_calculate_result
+        if self.main_confirmation_indicator:
+            return two_cross_signal(tsi,signal_line)
+        return one_over_other(tsi,signal_line)
+    
+    def exit_signal(self, *args, **kwargs):
+        tsi, signal_line = self._last_calculate_result
+        return two_cross_signal(tsi,signal_line,bos_signal=False)

@@ -25,6 +25,8 @@ class IndicatorMeta(type):
         return cls
 
 class IndicatorBase(metaclass=IndicatorMeta):
+    _last_calculate_result = None
+    _last_calculate_kwargs = None
     
     def calculate(self,*args,**kwargs):
         raise NotImplementedError("calculate needs to be implemented in a subclass or provided by the subclass")

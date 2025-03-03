@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from finpy.indicator_types.utils import ensure_prices_instance_method
 from finpy.indicator_types.categories import EntryIndicator,ExitIndicator
+from finpy.indicator_types.signal_functions import two_cross_signal,one_over_other
 
 class Vortex(EntryIndicator,ExitIndicator):
     """
@@ -28,7 +28,7 @@ class Vortex(EntryIndicator,ExitIndicator):
     Output:
         - plus vi, minus vi
     """
-    @ensure_prices_instance_method
+    
     def calculate(self,data, length=28):
         # Calculando True Range (TR)
         high_low = data.HIGH - data.LOW
@@ -50,3 +50,13 @@ class Vortex(EntryIndicator,ExitIndicator):
         minus_vi = sum_minus_vm / sum_tr
 
         return plus_vi, minus_vi
+    
+    def entry_signal(self, *args, **kwargs):
+        plus_vi, minus_vi = self._last_calculate_result
+        if self.main_confirmation_indicator:
+            return two_cross_signal(plus_vi,minus_vi)
+        return one_over_other(plus_vi,minus_vi)
+    
+    def exit_signal(self, *args, **kwargs):
+        plus_vi, minus_vi = self._last_calculate_result
+        return two_cross_signal(plus_vi,minus_vi,bos_signal=False)
