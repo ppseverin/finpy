@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name='pynet',
+    name='finpy',
     version='0.1.18',
     author='Pedro Severin',
     author_email='ppseverin@miuandes.cl',
