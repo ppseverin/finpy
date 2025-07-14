@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name='finpy',
-    version='0.1.18',
+    version='0.1.19',
     author='Pedro Severin',
     author_email='ppseverin@miuandes.cl',
     description='Python NNFX Indicator Library',

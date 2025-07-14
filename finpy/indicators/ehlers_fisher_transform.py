@@ -39,7 +39,7 @@ class EhlersFisherTransform(EntryIndicator,ExitIndicator):
         - fisher value, signal value
     """
     
-    def ehlers_fisher_transform(self,data, period=10, weight=2, signal_period=9, price_type='median'):
+    def calculate(self,data, period=10, weight=2, signal_period=9, price_type='median'):
         # Inicialización de buffers
         prices = data.get_price(price_type)
         # print(prices)
