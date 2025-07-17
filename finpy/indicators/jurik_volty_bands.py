@@ -34,8 +34,8 @@ class JurikVoltyBands(EntryIndicator,ExitIndicator):
     """
     
     def calculate(self, data, length=14, price=0, shift=0, normalize=False,zero_bind=True):
-        applied_price = data.get_price(price)
-        cprice = data[applied_price]
+        cprice = data.get_price(price)
+        # cprice = data[applied_price]
         vprice = cprice.shift(shift)
         upValues,dnValues,miValue = self._iVolty(vprice, length)
         if zero_bind:

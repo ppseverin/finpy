@@ -67,6 +67,10 @@ class Prices(HeikenAshiPrices):
         super().__init__(self.data)
     
     @property
+    def shape(self):
+        return self.data.shape
+    
+    @property
     def CLOSE(self):
         return self.data.close
     @property
