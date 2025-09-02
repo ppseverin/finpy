@@ -46,7 +46,8 @@ class UniversalOscillator(EntryIndicator,ExitIndicator):
             if abs(noise_filter[i])>peak[i]:
                 peak[i] = abs(noise_filter[i])
         unio[3:] = noise_filter[3:]/peak[3:]
-        unio_slope = np.sign(unio[1:]-unio[:-1])
+        unio_slope = np.empty(shape=unio.shape)
+        unio_slope[1:] = np.sign(unio[1:]-unio[:-1])
         unio_zero_cross = np.where(unio>0,1,np.where(unio<0,-1,0))
         unio_level_cross = np.where(unio>level_up,1,np.where(unio<level_down,-1,0))
         return unio,unio_slope,unio_zero_cross,unio_level_cross
