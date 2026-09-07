@@ -149,7 +149,9 @@ def calculate_heikin_ashi(data):
 
 def calculate_smma(data, period):
     smma = np.zeros_like(data)
-    start_from = data[data.isna()].index.max()+1
+    start_from = data.first_valid_index() #data[data.isna()].index.max()+1
+    if start_from is None:                       # serie enteramente NaN: no hay nada que suavizar
+        return pd.Series(np.nan, index=data.index)
     smma[:start_from+period-1] = np.nan  # Opcional, dependiendo de cómo quieras manejar el inicio de la serie
     
     # Calcula la primera SMMA (media móvil simple de los primeros `period` valores)
@@ -292,7 +294,7 @@ def ma_method(method):
                 price = pd.Series(price)
             ema1 = price.ewm(alpha=alpha,adjust=False).mean()
             ema2 = ema1.ewm(alpha=alpha,adjust=False).mean()
-            return ema2.to_numpy()
+            return ema2#.to_numpy()
         return double_smooth_ema
     elif method == 'double ema (dema)' or method == 'dema':
         return talib.DEMA
@@ -304,6 +306,8 @@ def ma_method(method):
                 data = pd.Series(data)
             smma = np.zeros_like(data)
             start_from = data.first_valid_index() #data[data.isna()].index.max()+1
+            if start_from is None:                       # serie enteramente NaN: no hay nada que suavizar
+                return pd.Series(np.nan, index=data.index)
             smma[:start_from+period-1] = np.nan  # Opcional, dependiendo de cómo quieras manejar el inicio de la serie
             
             # Calcula la primera SMMA (media móvil simple de los primeros `period` valores)
@@ -312,7 +316,7 @@ def ma_method(method):
             # Calcula las SMMA subsiguientes
             for i in range(period+start_from+1, len(data)):
                 smma[i] = (smma[i-1] * (period - 1) + data[i]) / period
-            return smma
+            return pd.Series(smma)
         return calculate_smma
     elif method == 'linear weighted ma' or method == 'wma':
         return talib.WMA
@@ -342,7 +346,7 @@ def ma_method(method):
                         sumw += weight
                         sum += weight * price.iloc[i - k]
                     pwma.iloc[i] = sum / sumw
-            return pwma.to_numpy()
+            return pwma#.to_numpy()
         return parabolic_lwma
     elif method == 'alexander ma' or method == 'alexander':
         def alexander_ma(price, period):
@@ -372,7 +376,7 @@ def ma_method(method):
                         sumw += weight
                         sum += weight * price.iloc[i - k]
                     alex_ma.iloc[i] = sum / sumw #if sumw != 0 else price.iloc[i]
-            return alex_ma.to_numpy()
+            return alex_ma#.to_numpy()
         return alexander_ma
     elif method == 'volume weghted ma' or method == 'vwma':
         def iWwma(price, volume, period):
@@ -399,7 +403,7 @@ def ma_method(method):
                         sumw += weight
                         sum += weight * price.iloc[i - k]
                     wwma.iloc[i] = sum / sumw if sumw != 0 else price.iloc[i]
-            return wwma.to_numpy()
+            return wwma#.to_numpy()
         return iWwma
     elif method == 'hull ma' or method == 'hull':
         def hull_moving_average(price, period):
@@ -428,7 +432,7 @@ def ma_method(method):
             # WMA final del resultado para el período de la raíz cuadrada del período original
             hma = hma.rolling(window=sqrt_period).apply(lambda x: np.dot(x, np.arange(1, sqrt_period + 1)) / np.arange(1, sqrt_period + 1).sum(), raw=True)
 
-            return hma.to_numpy()
+            return hma#.to_numpy()
         return hull_moving_average
     elif method == 'triangular ma' or method == 'trima':
         return talib.TRIMA
@@ -457,7 +461,7 @@ def ma_method(method):
                         sumw += weight
                         sum += weight * price.iloc[i - k]
                     sine_wma.iloc[i] = sum / sumw
-            return sine_wma.to_numpy()
+            return sine_wma#.to_numpy()
         return sine_weighted_moving_average
     elif method == 'linear regression' or method == 'linear reg':
         return talib.LINEARREG
@@ -490,7 +494,7 @@ def ma_method(method):
                     average = sumy / period
                     ie2_ma.iloc[r] = ((average + tslope) + (sumy + tslope * sumx) / period) / 2
 
-            return ie2_ma.to_numpy()
+            return ie2_ma#.to_numpy()
         return ie2_moving_average
     elif method == 'nonlag ma' or method == 'nonlag':
         def non_lag_moving_average(data, length):
@@ -536,7 +540,7 @@ def ma_method(method):
 
                 nlm_ma.iloc[r] = sum / weight_sum if weight_sum > 0 else data.iloc[r]
 
-            return nlm_ma.to_numpy()
+            return nlm_ma#.to_numpy()
         return non_lag_moving_average
     elif method == 'zero lag ema' or method == 'zero lag':
         def zero_lag_ema(data, length):
@@ -569,7 +573,7 @@ def ma_method(method):
                 price_lagged = data.iloc[r - per] if r - per >= first_valid_index else data.iloc[first_valid_index]
                 zlema.iloc[r] = zlema.iloc[r - 1] + alpha * (2 * data.iloc[r] - price_lagged - zlema.iloc[r - 1])
 
-            return zlema.to_numpy()
+            return zlema#.to_numpy()
         return zero_lag_ema
     elif method == 'leader ema' or method == 'leader':
         def leader_moving_average(data, period):
@@ -605,7 +609,7 @@ def ma_method(method):
                 leader2.iloc[r] = leader2.iloc[r - 1] + alpha * (data.iloc[r] - leader1.iloc[r] - leader2.iloc[r - 1])
 
             leader_ma = leader1 + leader2
-            return leader_ma.to_numpy()
+            return leader_ma#.to_numpy()
         return leader_moving_average
     elif method == 'super smoother' or method == 'sssm':
         def ssm_moving_average(data, period):
@@ -640,7 +644,7 @@ def ma_method(method):
             for i in range(first_valid_index + 2, len(data)):
                 ssm.iloc[i] = c1 * (data.iloc[i] + data.iloc[i - 1]) / 2.0 + b1 * ssm.iloc[i - 1] - a1**2 * ssm.iloc[i - 2]
 
-            return ssm.to_numpy()
+            return ssm#.to_numpy()
         return ssm_moving_average
     elif method == 'smoother' or method == 'ssm':
         def smooth_moving_average(data, length):
@@ -683,7 +687,7 @@ def ma_method(method):
                     smooth4.iloc[r] = smooth3.iloc[r] + smooth4.iloc[r - 1]
                 # print(r,smooth0.iloc[r],smooth1.iloc[r],smooth2.iloc[r],smooth3.iloc[r],smooth4.iloc[r])
             # El valor final suavizado es smooth4
-            return smooth4.to_numpy()
+            return smooth4#.to_numpy()
         return smooth_moving_average
     elif method == 'std' or method == 'stddev':
         return talib.STDDEV
@@ -702,7 +706,7 @@ def ma_method(method):
             wilder_ma[:2] = data[:2]
             for i in range(2, n):
                 wilder_ma[i] = (data[i] - wilder_ma[i - 1]) / period + wilder_ma[i - 1]
-            return wilder_ma
+            return pd.Series(wilder_ma)
         return wilders_moving_average
     elif method == 'smma':
         def smma(data, period):
@@ -723,7 +727,7 @@ def ma_method(method):
                 for j in range(period):
                     _sum+=data[i-j-1]
                 _smma[i] = (_sum - _smma[i-1] + data[i])/period
-            return _smma
+            return pd.Series(_smma)
         return smma
     elif method == 'itrend':
         def itrend(data, period):
@@ -743,7 +747,7 @@ def ma_method(method):
                 _itrend[i] = (data[i] + 2*data[i-1] + data[i-2])/4
             for i in range(7,n):
                 _itrend[i] = alpha*(1-0.25*alpha)*data[i] + 0.5*np.power(alpha,2)*data[i-1] - alpha*(1 - 0.75*alpha)*data[i-2] + 2*(1-alpha)*_itrend[i-1] - (1-alpha)*(1-alpha)*_itrend[i-2]
-            return _itrend
+            return pd.Series(_itrend)
         return itrend
     elif method == 'rema':
         def rema(data, period):
@@ -762,7 +766,7 @@ def ma_method(method):
             _rema[:3] = data[:3]            
             for i in range(3,n):    
                 _rema[i] = (_rema[i-1]*(1+2*_lambda) + alpha*(data[i] - _rema[i-1]) - _lambda*_rema[i-2])/(1+_lambda)
-            return _rema
+            return pd.Series(_rema)
         return rema
     elif method == 'median':
         def median(data,period):
@@ -771,7 +775,7 @@ def ma_method(method):
             """
             if not isinstance(data,pd.Series):
                 data = pd.Series(data)
-            return data.rolling(period).median().to_numpy()
+            return data.rolling(period).median()#.to_numpy()
         return median
     elif method == 'geomean':
         def geomean(data, period):
@@ -790,7 +794,7 @@ def ma_method(method):
             rolling_sum = log_prices.rolling(window=period).sum()
             # Convierte la suma de logaritmos de vuelta al exponente y divide por el período para obtener la media geométrica
             rolling_geomean = np.exp(rolling_sum / period)
-            return rolling_geomean.to_numpy()
+            return rolling_geomean#.to_numpy()
         return geomean
     elif method == 'ilrs':
         def ilrs(data, period):
@@ -813,7 +817,7 @@ def ma_method(method):
                 if num2!=0:
                     slope = num1/num2
                 output[bar] = slope + sma[bar]
-            return output
+            return pd.Series(output)
         return ilrs
     elif method == 'trima2' or method == 'itrima':
         def itrima(data,period):
@@ -828,5 +832,5 @@ def ma_method(method):
                 for i in range(length):
                     sum0 += sma[bar-i]
                 output[bar] = sum0/length
-            return output
+            return pd.Series(output)
         return itrima
